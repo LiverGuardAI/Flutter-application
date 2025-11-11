@@ -3,8 +3,12 @@ import 'pages/login_page.dart';
 import 'pages/signup_page.dart';
 import 'pages/tutorial_page.dart';
 import 'pages/main_page.dart';
+import 'api/dio_client.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DioClient.initialize();
+
   runApp(const LiverGuardApp());
 }
 

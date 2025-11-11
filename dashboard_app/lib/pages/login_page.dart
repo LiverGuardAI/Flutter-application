@@ -1,15 +1,29 @@
 import 'package:flutter/material.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/custom_textfield.dart';
+import '../api/auth_api.dart';
+import '../utils/secure_storage.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+  State<LoginPage> createState() => _LoginPageState();
+}
 
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController idController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    idController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
@@ -26,7 +40,7 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 40),
 
-                CustomTextField(controller: emailController, hintText: "Email"),
+                CustomTextField(controller: idController, hintText: "ID"),
 
                 const SizedBox(height: 16),
 
@@ -40,9 +54,36 @@ class LoginPage extends StatelessWidget {
 
                 PrimaryButton(
                   text: "로그인",
-                  onPressed: () {
-                    // ✅ 추후 로그인 API 연결
-                    Navigator.pushReplacementNamed(context, "/tutorial");
+                  onPressed: () async {
+                    final id = idController.text.trim();
+                    final pw = passwordController.text.trim();
+
+                    if (id.isEmpty || pw.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("아이디와 비밀번호를 입력하세요.")),
+                      );
+                      return;
+                    }
+
+                    final result = await AuthApi.login(id, pw);
+
+                    if (result["success"] == true) {
+                      await SecureStorage.save("access", result["access"]);
+                      if (result["refresh"] != null) {
+                        await SecureStorage.save("refresh", result["refresh"]);
+                      }
+
+                      if (!mounted) return;
+                      Navigator.pushReplacementNamed(context, "/tutorial");
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            result["message"]?.toString() ?? "로그인 실패",
+                          ),
+                        ),
+                      );
+                    }
                   },
                 ),
 
