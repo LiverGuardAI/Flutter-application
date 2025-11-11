@@ -48,7 +48,8 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: _currentIndex,
 
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(
             icon: Icon(Icons.medical_services),
             label: "DDI",
