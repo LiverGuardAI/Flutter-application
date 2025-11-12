@@ -35,6 +35,7 @@ class AuthApi {
       // ✅ 토큰 저장
       await SecureStorage.save("access", access);
       await SecureStorage.save("refresh", refresh);
+      await SecureStorage.save("user_id", id.trim());
 
       return {"success": true};
     } on DioException catch (e) {

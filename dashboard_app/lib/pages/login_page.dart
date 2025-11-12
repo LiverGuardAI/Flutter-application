@@ -65,12 +65,17 @@ class _LoginPageState extends State<LoginPage> {
                       return;
                     }
 
+                    // ✅ await 전에 Navigator와 ScaffoldMessenger 미리 가져오기
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+
                     final result = await AuthApi.login(id, pw);
+                    if (!mounted) return;
 
                     if (result["success"] == true) {
-                      Navigator.pushReplacementNamed(context, "/main");
+                      navigator.pushReplacementNamed("/main");
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text(result["message"])),
                       );
                     }
