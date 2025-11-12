@@ -3,6 +3,7 @@ import 'pages/login_page.dart';
 import 'pages/signup_page.dart';
 import 'pages/tutorial_page.dart';
 import 'pages/main_page.dart';
+import 'pages/profile_page.dart';
 import 'api/dio_client.dart';
 
 void main() async {
@@ -29,6 +30,7 @@ class LiverGuardApp extends StatelessWidget {
         "/tutorial": (context) => const TutorialPage(),
         "/main": (context) => const MainPage(),
         "/signup": (context) => const SignupPage(),
+        "/profile": (context) => const ProfilePage(),
       },
     );
   }

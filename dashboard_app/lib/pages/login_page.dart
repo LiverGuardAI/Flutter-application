@@ -68,20 +68,10 @@ class _LoginPageState extends State<LoginPage> {
                     final result = await AuthApi.login(id, pw);
 
                     if (result["success"] == true) {
-                      await SecureStorage.save("access", result["access"]);
-                      if (result["refresh"] != null) {
-                        await SecureStorage.save("refresh", result["refresh"]);
-                      }
-
-                      if (!mounted) return;
                       Navigator.pushReplacementNamed(context, "/tutorial");
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            result["message"]?.toString() ?? "로그인 실패",
-                          ),
-                        ),
+                        SnackBar(content: Text(result["message"])),
                       );
                     }
                   },

@@ -1,46 +1,65 @@
 // lib/api/auth_api.dart
 import 'package:dio/dio.dart';
 import 'dio_client.dart';
+import '../utils/secure_storage.dart';
 
 class AuthApi {
-  /// Django 커스텀 로그인: POST /api/login/
-  /// body: { "user_id": "...", "password": "..." }
-  /// response 예시: { "access": "...", "refresh": "..." }  또는 { "token": "..." }
-  static Future<Map<String, dynamic>> login(
-    String userId,
-    String password,
-  ) async {
+  /// ✅ 로그인 API
+  /// - 서버에 로그인 요청
+  /// - 성공 시 토큰 저장까지 처리
+  static Future<Map<String, dynamic>> login(String id, String password) async {
     final dio = DioClient.dio;
 
     try {
-      final res = await dio.post(
-        "/auth/login/", // 최종: http://10.0.2.2:8000/api/login/
-        data: {"user_id": userId.trim(), "password": password.trim()},
+      final response = await dio.post(
+        "/auth/login/",
+        data: {"user_id": id.trim(), "password": password.trim()},
       );
 
-      // 백엔드 응답 키에 유연하게 대응
-      final data = res.data ?? {};
-      final access = data["access"] ?? data["token"]; // token 하나만 주는 경우 대응
-      final refresh = data["refresh"]; // 없으면 null
+      final access = response.data["access"];
+      final refresh = response.data["refresh"];
 
-      if (access == null) {
-        return {"success": false, "message": "토큰이 응답에 없습니다."};
+      // ✅ access token 필수 체크
+      if (access == null || access.isEmpty) {
+        return {
+          "success": false,
+          "message": "서버에서 올바른 access token이 전달되지 않았습니다.",
+        };
       }
 
-      return {
-        "success": true,
-        "access": access,
-        "refresh": refresh, // 없을 수도 있음
-      };
+      // ✅ refresh token 필수 체크 (네 서비스 구조에서는 반드시 필요)
+      if (refresh == null || refresh.isEmpty) {
+        return {"success": false, "message": "서버에서 refresh token이 전달되지 않았습니다."};
+      }
+
+      // ✅ 토큰 저장
+      await SecureStorage.save("access", access);
+      await SecureStorage.save("refresh", refresh);
+
+      return {"success": true};
     } on DioException catch (e) {
-      // DRF 표준 에러 메시지 혹은 커스텀 메시지 안전 추출
-      final msg =
-          e.response?.data is Map && (e.response?.data["detail"] != null)
-          ? e.response?.data["detail"].toString()
-          : (e.response?.data?.toString() ?? "로그인 실패");
-      return {"success": false, "message": msg};
+      return {
+        "success": false,
+        "message": e.response?.data.toString() ?? "로그인 실패",
+      };
+    }
+  }
+
+  /// ✅ 로그아웃 API
+  /// - refresh token 서버로 전달
+  /// - 토큰 삭제는 UI(ProfilePage 등)에서 처리
+  static Future<bool> logout() async {
+    final dio = DioClient.dio;
+
+    // ✅ 로컬 refresh token 읽기
+    final refresh = await SecureStorage.read("refresh");
+    if (refresh == null) return false;
+
+    try {
+      await dio.post("/auth/logout/", data: {"refresh": refresh});
+      return true;
     } catch (_) {
-      return {"success": false, "message": "네트워크/파싱 에러"};
+      return false;
     }
   }
 }
