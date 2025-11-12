@@ -31,7 +31,7 @@ class LiverGuardApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('ko', 'KR'), Locale('en', 'US')],
 
-      initialRoute: "/login",
+      initialRoute: "/tutorial",
 
       routes: {
         "/login": (context) => const LoginPage(),
