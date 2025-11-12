@@ -1,0 +1,10 @@
+{
+  "dart.flutterSdkPath": "C:\\flutter",
+  "dart.flutterAdbConnectOnChromeOs": true,
+  "dart.env": {
+    "ANDROID_SDK_ROOT": "C:\\Dev\\Sdk",
+    "ANDROID_HOME": "C:\\Dev\\Sdk",
+    "ANDROID_AVD_HOME": "C:\\Dev\\.android\\avd",
+    "PATH": "C:\\Dev\\Sdk\\platform-tools;C:\\Dev\\Sdk\\emulator;${env:PATH}"
+  }
+}
