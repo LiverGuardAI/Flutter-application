@@ -113,7 +113,19 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _infoTile(Icons.male, "성별", user["sex"]),
+                  _infoTile(
+                    user["sex"] == "male"
+                        ? Icons.male
+                        : user["sex"] == "female"
+                        ? Icons.female
+                        : Icons.person, // 예외 처리
+                    "성별",
+                    user["sex"] == "male"
+                        ? "남성"
+                        : user["sex"] == "female"
+                        ? "여성"
+                        : "-",
+                  ),
                   _infoTile(Icons.height, "키 (cm)", user["height"]),
                   _infoTile(Icons.monitor_weight, "체중 (kg)", user["weight"]),
                 ],
