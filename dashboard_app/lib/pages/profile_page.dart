@@ -1,4 +1,3 @@
-// lib/pages/profile_page.dart
 import 'package:flutter/material.dart';
 import '../api/auth_api.dart';
 import '../utils/secure_storage.dart';
@@ -66,18 +65,67 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildProfileContent() {
     final user = userData!;
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow("이름", user["name"]),
-          _infoRow("아이디", user["user_id"]),
-          _infoRow("생년월일", user["birth_date"]),
-          _infoRow("성별", user["sex"]),
-          _infoRow("전화번호", user["phone"]),
-          const Spacer(),
+          // 👤 상단 프로필
           Center(
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 45,
+                  backgroundColor: Colors.blue.shade100,
+                  child: const Icon(
+                    Icons.person,
+                    size: 60,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  user["name"] ?? "-",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user["birth_date"] ?? "-",
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 30),
+          const Divider(thickness: 1.2),
+
+          // 📋 상세 정보 카드
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 3,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _infoTile(Icons.male, "성별", user["sex"]),
+                  _infoTile(Icons.height, "키 (cm)", user["height"]),
+                  _infoTile(Icons.monitor_weight, "체중 (kg)", user["weight"]),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
+          // 🚪 로그아웃 버튼
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _logout,
               icon: const Icon(Icons.logout),
@@ -86,8 +134,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                  vertical: 14,
+                  horizontal: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -97,23 +148,17 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _infoRow(String label, dynamic value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Text(
-            "$label: ",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          Expanded(
-            child: Text(
-              value?.toString() ?? "-",
-              style: const TextStyle(fontSize: 16),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+  Widget _infoTile(IconData icon, String label, dynamic value) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      leading: Icon(icon, color: Colors.blueAccent),
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+      trailing: Text(
+        value?.toString() ?? "-",
+        style: const TextStyle(fontSize: 16),
       ),
     );
   }
