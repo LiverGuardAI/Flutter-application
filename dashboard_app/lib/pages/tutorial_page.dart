@@ -1,150 +1,124 @@
 import 'package:flutter/material.dart';
+import 'tutorial_components/liver_guard_splash.dart';
+import 'tutorial_components/diagnosis_view.dart';
+import 'tutorial_components/blood_test_view.dart';
+import 'tutorial_components/drug_interaction_view.dart';
+import 'tutorial_components/welcome_health_view.dart';
+import 'tutorial_components/center_next_button.dart';
+import 'tutorial_components/top_back_skip_view.dart';
+import 'login_page.dart';
 
 class TutorialPage extends StatefulWidget {
-  const TutorialPage({Key? key}) : super(key: key);
+  const TutorialPage({super.key});
 
   @override
   State<TutorialPage> createState() => _TutorialPageState();
 }
 
-class _TutorialPageState extends State<TutorialPage> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
+class _TutorialPageState extends State<TutorialPage>
+    with TickerProviderStateMixin {
+  AnimationController? _animationController;
 
-  final List<String> _titles = [
-    "정확한 간 진단을 위해",
-    "혈액검사 결과를 한 눈에",
-    "약물 상호작용을 안전하게",
-    "당신의 건강을 더 가깝게",
-  ];
+  @override
+  void initState() {
+    _animationController =
+        AnimationController(vsync: this, duration: Duration(seconds: 8));
+    _animationController?.animateTo(0.0);
+    super.initState();
+  }
 
-  final List<String> _descriptions = [
-    "CT, MRI, 초음파 데이터를 기반으로 더 나은 조기 진단을 제공합니다.",
-    "간 수치 변화를 쉽게 확인하고 의사결정에 도움을 줍니다.",
-    "약물 부작용을 미리 예측하고 안전한 처방을 도와줍니다.",
-    "지금 바로 LiverGuard와 함께 건강을 관리해보세요.",
-  ];
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
+      backgroundColor: Colors.white,
+      body: ClipRect(
+        child: Stack(
           children: [
-            // PageView (슬라이드 4개)
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: 4,
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
-                itemBuilder: (context, index) {
-                  return _buildSlide(index);
-                },
-              ),
+            LiverGuardSplash(
+              animationController: _animationController!,
             ),
-
-            const SizedBox(height: 20),
-
-            // 인디케이터
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                4,
-                (index) => _indicator(index == _currentPage),
-              ),
+            DiagnosisView(
+              animationController: _animationController!,
             ),
-
-            const SizedBox(height: 30),
-
-            // 마지막 슬라이드에만 “시작하기”
-            _currentPage == 3
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacementNamed(context, '/main');
-                        },
-                        child: const Text("시작하기"),
-                      ),
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: TextButton(
-                      onPressed: () {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                      child: const Text("다음 →"),
-                    ),
-                  ),
-
-            const SizedBox(height: 20),
+            BloodTestView(
+              animationController: _animationController!,
+            ),
+            DrugInteractionView(
+              animationController: _animationController!,
+            ),
+            WelcomeHealthView(
+              animationController: _animationController!,
+            ),
+            TopBackSkipView(
+              onBackClick: _onBackClick,
+              onSkipClick: _onSkipClick,
+              animationController: _animationController!,
+            ),
+            CenterNextButton(
+              animationController: _animationController!,
+              onNextClick: _onNextClick,
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ✅ 각 슬라이드 구성
-  Widget _buildSlide(int index) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // ✅ 이미지 자리(나중에 실제 이미지 넣을 수 있음)
-          Container(
-            height: 220,
-            width: 220,
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Icons.health_and_safety,
-              size: 100,
-              color: Colors.blue.shade400,
-            ),
-          ),
-
-          const SizedBox(height: 40),
-
-          Text(
-            _titles[index],
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 20),
-
-          Text(
-            _descriptions[index],
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
+  void _onSkipClick() {
+    _animationController?.animateTo(0.8,
+        duration: Duration(milliseconds: 1200));
   }
 
-  // ✅ 인디케이터
-  Widget _indicator(bool isActive) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: isActive ? 22 : 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.blue : Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
+  void _onBackClick() {
+    if (_animationController!.value >= 0 &&
+        _animationController!.value <= 0.2) {
+      _animationController?.animateTo(0.0);
+    } else if (_animationController!.value > 0.2 &&
+        _animationController!.value <= 0.4) {
+      _animationController?.animateTo(0.2);
+    } else if (_animationController!.value > 0.4 &&
+        _animationController!.value <= 0.6) {
+      _animationController?.animateTo(0.4);
+    } else if (_animationController!.value > 0.6 &&
+        _animationController!.value <= 0.8) {
+      _animationController?.animateTo(0.6);
+    } else if (_animationController!.value > 0.8 &&
+        _animationController!.value <= 1.0) {
+      _animationController?.animateTo(0.8);
+    }
+  }
+
+  void _onNextClick() {
+    if (_animationController!.value >= 0 &&
+        _animationController!.value <= 0.2) {
+      _animationController?.animateTo(0.4);
+    } else if (_animationController!.value > 0.2 &&
+        _animationController!.value <= 0.4) {
+      _animationController?.animateTo(0.6);
+    } else if (_animationController!.value > 0.4 &&
+        _animationController!.value <= 0.6) {
+      _animationController?.animateTo(0.8);
+    } else if (_animationController!.value > 0.6) {
+      // 마지막 페이지에서 "시작하기" 버튼 클릭 시 로그인 페이지로 이동
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+          transitionDuration: Duration(milliseconds: 600),
+        ),
+      );
+    }
   }
 }

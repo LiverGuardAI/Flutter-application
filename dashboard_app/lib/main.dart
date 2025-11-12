@@ -23,7 +23,7 @@ class LiverGuardApp extends StatelessWidget {
       title: "LiverGuard",
       theme: ThemeData(primarySwatch: Colors.blue),
 
-      initialRoute: "/login",
+      initialRoute: "/tutorial",
 
       routes: {
         "/login": (context) => const LoginPage(),

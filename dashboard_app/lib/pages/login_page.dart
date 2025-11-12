@@ -68,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
                     final result = await AuthApi.login(id, pw);
 
                     if (result["success"] == true) {
-                      Navigator.pushReplacementNamed(context, "/tutorial");
+                      Navigator.pushReplacementNamed(context, "/main");
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(result["message"])),
