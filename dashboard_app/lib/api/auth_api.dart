@@ -101,4 +101,15 @@ class AuthApi {
       return false;
     }
   }
+
+  // get profile api
+  static Future<Map<String, dynamic>> getProfile() async {
+    final dio = DioClient.dio;
+    try {
+      final response = await dio.get("/auth/user/");
+      return {"success": true, "data": response.data};
+    } on DioException catch (e) {
+      return {"success": false, "message": e.response?.data ?? "프로필 불러오기 실패"};
+    }
+  }
 }
