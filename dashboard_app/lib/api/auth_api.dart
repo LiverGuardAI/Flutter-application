@@ -2,6 +2,7 @@
 import 'package:dio/dio.dart';
 import 'dio_client.dart';
 import '../utils/secure_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthApi {
   /// ✅ 회원가입 API
@@ -74,7 +75,10 @@ class AuthApi {
       // ✅ 토큰 저장
       await SecureStorage.save("access", access);
       await SecureStorage.save("refresh", refresh);
-      await SecureStorage.save("user_id", id.trim());
+      await SecureStorage.save(
+        "patient_id",
+        response.data['user']["patient_id"],
+      );
 
       return {"success": true};
     } on DioException catch (e) {
