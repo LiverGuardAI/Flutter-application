@@ -36,7 +36,7 @@ class DioClient {
             if (refreshToken != null) {
               try {
                 final refreshResponse = await dio.post(
-                  "/token/refresh/",
+                  "/auth/refresh/",
                   data: {"refresh": refreshToken},
                 );
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/login_page.dart';
 import 'pages/signup_page.dart';
 import 'pages/tutorial_page.dart';
@@ -22,6 +23,13 @@ class LiverGuardApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "LiverGuard",
       theme: ThemeData(primarySwatch: Colors.blue),
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('ko', 'KR'), Locale('en', 'US')],
 
       initialRoute: "/login",
 

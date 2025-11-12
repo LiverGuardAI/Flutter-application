@@ -4,6 +4,45 @@ import 'dio_client.dart';
 import '../utils/secure_storage.dart';
 
 class AuthApi {
+  /// ✅ 회원가입 API
+  static Future<Map<String, dynamic>> register({
+    required String userId,
+    required String password,
+    required String password2,
+    required String name,
+    required String birthDate,
+    required String sex,
+    required String phone,
+  }) async {
+    final dio = DioClient.dio;
+
+    try {
+      final response = await dio.post(
+        "/auth/register/",
+        data: {
+          "user_id": userId.trim(),
+          "password": password.trim(),
+          "password2": password2.trim(),
+          "name": name.trim(),
+          "birth_date": birthDate.trim(),
+          "sex": sex,
+          "phone": phone.trim(),
+        },
+      );
+
+      if (response.statusCode == 201) {
+        return {"success": true, "message": "회원가입이 완료되었습니다."};
+      } else {
+        return {"success": false, "message": response.data.toString()};
+      }
+    } on DioException catch (e) {
+      return {
+        "success": false,
+        "message": e.response?.data.toString() ?? "회원가입 실패",
+      };
+    }
+  }
+
   /// ✅ 로그인 API
   /// - 서버에 로그인 요청
   /// - 성공 시 토큰 저장까지 처리

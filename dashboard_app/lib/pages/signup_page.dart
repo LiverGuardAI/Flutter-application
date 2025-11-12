@@ -1,133 +1,173 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../api/auth_api.dart';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({Key? key}) : super(key: key);
+  const SignupPage({super.key});
 
   @override
   State<SignupPage> createState() => _SignupPageState();
 }
 
 class _SignupPageState extends State<SignupPage> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _userIdController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _password2Controller = TextEditingController();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  DateTime? _selectedBirthDate;
+  String? _selectedSex; // "남성" or "여성"
+  bool _isLoading = false;
 
-  bool _isObscure = true;
-  bool _isObscureConfirm = true;
+  // 📅 날짜 선택 위젯
+  Future<void> _pickBirthDate(BuildContext context) async {
+    final now = DateTime.now();
+    final initialDate = _selectedBirthDate ?? DateTime(now.year - 20);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: now,
+      locale: const Locale('ko', 'KR'),
+    );
+    if (picked != null) {
+      setState(() => _selectedBirthDate = picked);
+    }
+  }
+
+  // 🚀 회원가입 처리
+  Future<void> _handleSignup() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedBirthDate == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("생년월일을 선택해주세요.")));
+      return;
+    }
+    if (_selectedSex == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("성별을 선택해주세요.")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final userId = _userIdController.text.trim();
+    final password = _passwordController.text.trim();
+    final password2 = _password2Controller.text.trim();
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final birthDate = DateFormat('yyyy-MM-dd').format(_selectedBirthDate!);
+    final sex = _selectedSex == "남성" ? "male" : "female";
+
+    try {
+      final response = await AuthApi.register(
+        userId: userId,
+        password: password,
+        password2: password2,
+        name: name,
+        birthDate: birthDate,
+        sex: sex,
+        phone: phone,
+      );
+
+      if (response["success"] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response["message"] ?? "회원가입 성공")),
+        );
+        Navigator.pop(context); // 로그인 페이지로 이동
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response["message"] ?? "회원가입 실패")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("오류 발생: $e")));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
+      appBar: AppBar(title: const Text("회원가입")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Title
-              const Text(
-                "회원가입",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              TextFormField(
+                controller: _userIdController,
+                decoration: const InputDecoration(labelText: "아이디"),
+                validator: (v) => v!.isEmpty ? "아이디를 입력하세요" : null,
               ),
-              const SizedBox(height: 30),
-
-              // 이름
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: "이름",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 이메일
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: "이메일",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 비밀번호
-              TextField(
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _passwordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  labelText: "비밀번호",
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isObscure ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() => _isObscure = !_isObscure);
-                    },
+                obscureText: true,
+                decoration: const InputDecoration(labelText: "비밀번호"),
+                validator: (v) => v!.length < 6 ? "비밀번호는 6자 이상이어야 합니다" : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _password2Controller,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: "비밀번호 확인"),
+                validator: (v) =>
+                    v != _passwordController.text ? "비밀번호가 일치하지 않습니다" : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: "이름"),
+                validator: (v) => v!.isEmpty ? "이름을 입력하세요" : null,
+              ),
+              const SizedBox(height: 16),
+              // 📅 생년월일 선택
+              InkWell(
+                onTap: () => _pickBirthDate(context),
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: "생년월일"),
+                  child: Text(
+                    _selectedBirthDate == null
+                        ? "날짜 선택"
+                        : DateFormat('yyyy-MM-dd').format(_selectedBirthDate!),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // 비밀번호 확인
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: _isObscureConfirm,
-                decoration: InputDecoration(
-                  labelText: "비밀번호 확인",
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isObscureConfirm
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() => _isObscureConfirm = !_isObscureConfirm);
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // 가입 버튼
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // 나중에 Django 연동 시 여기에 요청 작성
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("회원가입 기능은 추후 연동됩니다.")),
-                    );
-                  },
-                  child: const Text("가입하기"),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 로그인 화면 이동
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("이미 계정이 있으신가요? "),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushReplacementNamed(context, '/login');
-                    },
-                    child: const Text(
-                      "로그인",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 16),
+              // 🚻 성별 선택
+              DropdownButtonFormField<String>(
+                value: _selectedSex,
+                decoration: const InputDecoration(labelText: "성별"),
+                items: const [
+                  DropdownMenuItem(value: "남성", child: Text("남성")),
+                  DropdownMenuItem(value: "여성", child: Text("여성")),
                 ],
+                onChanged: (value) => setState(() => _selectedSex = value),
+                validator: (v) => v == null ? "성별을 선택하세요" : null,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: "전화번호"),
+                validator: (v) => v!.isEmpty ? "전화번호를 입력하세요" : null,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleSignup,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("회원가입"),
+              ),
             ],
           ),
         ),
