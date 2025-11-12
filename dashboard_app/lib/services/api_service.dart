@@ -1,12 +1,23 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/dashboard_model.dart';
+import '../models/dashboard_model.dart'; // 기존 모델
+
+// --- [신규] DDI 모델 임포트 ---
+// (이 파일들은 React의 결과 JSON을 기반으로 생성해야 합니다)
+// 예시: import '../models/ddi_models.dart';
 
 class ApiService {
+  // 기존 인증/대시보드 서버
   static const String baseUrl = 'http://34.67.62.238:8000';
 
-  // 헬퍼: 저장된 토큰 가져오기
+  // --- [신규] DDI 서버 (api_v2.py) ---
+  // [중요!] 안드로이드 에뮬레이터는 10.0.2.2가 PC의 127.0.0.1입니다.
+  // 실제 폰 테스트 시에는 PC의 LAN IP (예: 192.168.0.x:5000)를 사용하세요.
+  static const String ddiBaseUrl = 'http://10.0.2.2:5000';
+
+  // --- 기존 코드 (토큰 및 프로필) ---
+  // (헬퍼: 저장된 토큰 가져오기)
   static Future<String?> getToken() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -25,7 +36,7 @@ class ApiService {
     }
   }
 
-  // 헬퍼: 토큰 저장 (로그인 페이지에서 사용 가능)
+  // (헬퍼: 토큰 저장)
   static Future<void> saveToken(String accessToken, String refreshToken) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -37,7 +48,7 @@ class ApiService {
     }
   }
 
-  // 헬퍼: 토큰 삭제 (로그아웃 시)
+  // (헬퍼: 토큰 삭제)
   static Future<void> clearToken() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -49,7 +60,7 @@ class ApiService {
     }
   }
 
-  // 사용자 프로필 가져오기
+  // (사용자 프로필 가져오기)
   Future<Map<String, dynamic>> fetchUserProfile(String token) async {
     try {
       print('프로필 로드 시작...');
@@ -79,7 +90,7 @@ class ApiService {
     }
   }
 
-  // 혈액검사 그래프 가져오기
+  // (혈액검사 그래프 가져오기)
   Future<DashboardGraphs> fetchDashboardGraphs(String token) async {
     try {
       print('그래프 로드 시작...');
@@ -105,6 +116,80 @@ class ApiService {
       }
     } catch (e) {
       print('Exception: $e');
+      rethrow;
+    }
+  }
+
+  // --- [신규] DDI API 함수들 ---
+
+  // 1. (DDI) 약물 비동기 검색
+  Future<List<Map<String, String>>> searchDrugs(String query) async {
+    if (query.isEmpty) {
+      return [];
+    }
+    try {
+      // [중요] ddiBaseUrl 사용
+      final response = await http.get(
+        Uri.parse('$ddiBaseUrl/api/search_drugs?query=$query'),
+      );
+
+      if (response.statusCode == 200) {
+        // [{value: '...', label: '...'}, ...]
+        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Map<String, String>.from(item)).toList();
+      } else {
+        throw Exception('Failed to search drugs');
+      }
+    } catch (e) {
+      print('searchDrugs 오류: $e');
+      rethrow;
+    }
+  }
+
+  // 2. (DDI) 통합 검사 실행
+  Future<Map<String, dynamic>> checkAllDDI(List<String> drugs) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$ddiBaseUrl/api/check_all'), // [중요] ddiBaseUrl 사용
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'drugs': drugs}),
+      );
+
+      if (response.statusCode == 200) {
+        // { ai_predictions, drugbank_checks, ... }
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        throw Exception('Failed to check DDI: ${response.body}');
+      }
+    } catch (e) {
+      print('checkAllDDI 오류: $e');
+      rethrow;
+    }
+  }
+
+  // 3. (DDI) 대체 약물 추천
+  Future<Map<String, dynamic>> getAlternatives(
+    String drugToReplace,
+    List<String> opponentDrugs,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$ddiBaseUrl/api/get_alternatives'), // [중요] ddiBaseUrl 사용
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'drug_to_replace': drugToReplace,
+          'opponent_drugs': opponentDrugs,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // { safe_alternatives, risky_alternatives }
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        throw Exception('Failed to get alternatives: ${response.body}');
+      }
+    } catch (e) {
+      print('getAlternatives 오류: $e');
       rethrow;
     }
   }

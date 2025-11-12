@@ -7,6 +7,7 @@ import 'pages/tutorial_page.dart';
 import 'pages/main_page.dart';
 import 'pages/profile_page.dart';
 import 'api/dio_client.dart';
+import 'pages/ddi_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,7 @@ class LiverGuardApp extends StatelessWidget {
         "/main": (context) => const MainPage(),
         "/signup": (context) => const SignupPage(),
         "/profile": (context) => const ProfilePage(),
+        "/ddi": (context) => const DDIPage(),
       },
     );
   }
