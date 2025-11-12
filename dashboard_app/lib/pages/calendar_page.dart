@@ -4,6 +4,7 @@ import '../api/appointment_api.dart';
 import '../widgets/custom_calendar.dart';
 import '../widgets/appointment_popup.dart';
 import 'package:intl/intl.dart';
+import '../utils/secure_storage.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -28,7 +29,8 @@ class _CalendarPageState extends State<CalendarPage> {
       isLoading = true;
     });
 
-    final data = await AppointmentApi.getAppointments();
+    final patient_id = await SecureStorage.read('patient_id');
+    final data = await AppointmentApi.getAppointments(patient_id);
     setState(() {
       appointments = data;
       isLoading = false;
@@ -55,25 +57,24 @@ class _CalendarPageState extends State<CalendarPage> {
 
           if (appointment == null) {
             // 새 일정 추가
-            final result =
-                await AppointmentApi.createAppointment(newAppointment);
+            final result = await AppointmentApi.createAppointment(
+              newAppointment,
+            );
             if (!mounted) return;
 
-            messenger.showSnackBar(
-              SnackBar(content: Text(result['message'])),
-            );
+            messenger.showSnackBar(SnackBar(content: Text(result['message'])));
             if (result['success'] == true) {
               _loadAppointments();
             }
           } else {
             // 기존 일정 수정
             final result = await AppointmentApi.updateAppointment(
-                appointment.appointmentId!, newAppointment);
+              appointment.appointmentId!,
+              newAppointment,
+            );
             if (!mounted) return;
 
-            messenger.showSnackBar(
-              SnackBar(content: Text(result['message'])),
-            );
+            messenger.showSnackBar(SnackBar(content: Text(result['message'])));
             if (result['success'] == true) {
               _loadAppointments();
             }
@@ -107,13 +108,12 @@ class _CalendarPageState extends State<CalendarPage> {
     );
 
     if (confirmed == true) {
-      final result =
-          await AppointmentApi.deleteAppointment(appointment.appointmentId!);
+      final result = await AppointmentApi.deleteAppointment(
+        appointment.appointmentId!,
+      );
       if (!mounted) return;
 
-      messenger.showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(result['message'])));
       if (result['success'] == true) {
         _loadAppointments();
       }
@@ -153,8 +153,10 @@ class _CalendarPageState extends State<CalendarPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            DateFormat('yyyy년 M월 d일 (E)', 'ko_KR')
-                                .format(selectedDate),
+                            DateFormat(
+                              'yyyy년 M월 d일 (E)',
+                              'ko_KR',
+                            ).format(selectedDate),
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -163,8 +165,10 @@ class _CalendarPageState extends State<CalendarPage> {
                           ElevatedButton.icon(
                             onPressed: () => _showAppointmentPopup(),
                             icon: const Icon(Icons.add, color: Colors.white),
-                            label: const Text('일정 추가',
-                                style: TextStyle(color: Colors.white)),
+                            label: const Text(
+                              '일정 추가',
+                              style: TextStyle(color: Colors.white),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               shape: RoundedRectangleBorder(
@@ -182,13 +186,18 @@ class _CalendarPageState extends State<CalendarPage> {
                             padding: const EdgeInsets.all(32.0),
                             child: Column(
                               children: [
-                                Icon(Icons.event_busy,
-                                    size: 64, color: Colors.grey.shade400),
+                                Icon(
+                                  Icons.event_busy,
+                                  size: 64,
+                                  color: Colors.grey.shade400,
+                                ),
                                 const SizedBox(height: 16),
                                 Text(
                                   '이 날짜에 등록된 일정이 없습니다.',
                                   style: TextStyle(
-                                      fontSize: 16, color: Colors.grey.shade600),
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
                                 ),
                               ],
                             ),
@@ -204,8 +213,9 @@ class _CalendarPageState extends State<CalendarPage> {
                             ),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap: () =>
-                                  _showAppointmentPopup(appointment: appointment),
+                              onTap: () => _showAppointmentPopup(
+                                appointment: appointment,
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
@@ -215,41 +225,52 @@ class _CalendarPageState extends State<CalendarPage> {
                                       children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: appointment.getTypeColor(),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
-                                            appointment.getAppointmentTypeLabel(),
+                                            appointment
+                                                .getAppointmentTypeLabel(),
                                             style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600),
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: appointment.getStatusColor(),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
                                             appointment.getStatusLabel(),
                                             style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600),
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                         const Spacer(),
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline,
-                                              color: Colors.red),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.red,
+                                          ),
                                           onPressed: () =>
                                               _deleteAppointment(appointment),
                                         ),
@@ -258,8 +279,11 @@ class _CalendarPageState extends State<CalendarPage> {
                                     const SizedBox(height: 12),
                                     Row(
                                       children: [
-                                        const Icon(Icons.local_hospital,
-                                            size: 20, color: Colors.blue),
+                                        const Icon(
+                                          Icons.local_hospital,
+                                          size: 20,
+                                          color: Colors.blue,
+                                        ),
                                         const SizedBox(width: 8),
                                         Text(
                                           appointment.hospital,
@@ -270,18 +294,23 @@ class _CalendarPageState extends State<CalendarPage> {
                                         ),
                                       ],
                                     ),
-                                    if (appointment.appointmentTime != null) ...[
+                                    if (appointment.appointmentTime !=
+                                        null) ...[
                                       const SizedBox(height: 8),
                                       Row(
                                         children: [
-                                          const Icon(Icons.access_time,
-                                              size: 20, color: Colors.grey),
+                                          const Icon(
+                                            Icons.access_time,
+                                            size: 20,
+                                            color: Colors.grey,
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             appointment.appointmentTime!,
                                             style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey.shade700),
+                                              fontSize: 14,
+                                              color: Colors.grey.shade700,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -293,15 +322,19 @@ class _CalendarPageState extends State<CalendarPage> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Icon(Icons.note,
-                                              size: 20, color: Colors.grey),
+                                          const Icon(
+                                            Icons.note,
+                                            size: 20,
+                                            color: Colors.grey,
+                                          ),
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
                                               appointment.details!,
                                               style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey.shade600),
+                                                fontSize: 14,
+                                                color: Colors.grey.shade600,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -311,15 +344,18 @@ class _CalendarPageState extends State<CalendarPage> {
                                       const SizedBox(height: 8),
                                       Row(
                                         children: [
-                                          Icon(Icons.notifications_active,
-                                              size: 18,
-                                              color: Colors.orange.shade400),
+                                          Icon(
+                                            Icons.notifications_active,
+                                            size: 18,
+                                            color: Colors.orange.shade400,
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             '알림 설정됨',
                                             style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade600),
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
                                           ),
                                         ],
                                       ),

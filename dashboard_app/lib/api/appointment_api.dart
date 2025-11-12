@@ -5,11 +5,11 @@ import 'dio_client.dart';
 import '../utils/secure_storage.dart';
 
 class AppointmentApi {
-  static Future<List<Appointment>> getAppointments() async {
-    // 전체 일정 조회
+  static Future<List<Appointment>> getAppointments(patient_id) async {
+    // 환자 전체 일정 조회
     try {
       final dio = DioClient.dio; // DioClient의 dio 인스턴스 가져오기
-      final response = await dio.get('/appointments/');
+      final response = await dio.get('/patients/${patient_id}/appointments/');
 
       if (response.statusCode == 200) {
         List<dynamic> data = response.data;
@@ -31,11 +31,11 @@ class AppointmentApi {
       final dio = DioClient.dio;
 
       // 로그인한 사용자의 user_id를 patient_id로 사용
-      final userId = await SecureStorage.read('user_id');
-      print('DEBUG: userId = $userId');
+      final patient_id = await SecureStorage.read('patient_id');
+      print('DEBUG: patientId = $patient_id');
 
       final appointmentData = appointment.toJson();
-      appointmentData['patient_id'] = userId;
+      appointmentData['patient_id'] = patient_id;
 
       print('DEBUG: appointmentData = $appointmentData');
 
