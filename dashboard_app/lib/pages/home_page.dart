@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/dashboard_service.dart';
 import '../themes/fitness_app/fitness_app_theme.dart';
+
 import '../widgets/blood_test_line_chart.dart';
 import 'survival_prediction_page.dart';
+
+import '../widgets/stylish_blood_test_chart.dart';
+import '../widgets/liver_health_status_card.dart';
+import '../widgets/liver_body_diagram.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -30,7 +35,6 @@ class _HomePageState extends State<HomePage>
     _loadAllData();
   }
 
-  // 🔧 헬퍼 함수: 안전한 double 변환
   double? _parseToDouble(dynamic value) {
     if (value == null) return null;
     if (value is num) return value.toDouble();
@@ -43,13 +47,9 @@ class _HomePageState extends State<HomePage>
   Future<void> _loadAllData() async {
     setState(() => isLoading = true);
     try {
-      // 1. 프로필 로드
       final profile = await DashboardService.fetchUserProfile();
-
-      // 2. 검사 기록 리스트 로드
       final allTests = await DashboardService.fetchAllBloodTests();
 
-      // 현재 사용자 ID로 필터링
       final currentPatientId = profile['patient_id'].toString();
       final filteredTests = allTests.where((test) {
         final testPatientId =
@@ -57,7 +57,6 @@ class _HomePageState extends State<HomePage>
         return testPatientId == currentPatientId;
       }).toList();
 
-      // 날짜순 정렬 (최신순)
       filteredTests.sort((a, b) {
         final dateA = DateTime.tryParse(a['taken_at'] ?? '') ?? DateTime(1900);
         final dateB = DateTime.tryParse(b['taken_at'] ?? '') ?? DateTime(1900);
@@ -70,9 +69,9 @@ class _HomePageState extends State<HomePage>
         isLoading = false;
       });
 
-      // 애니메이션 시작
       animationController?.forward();
     } catch (e) {
+      print('❌ 데이터 로드 에러: $e');
       setState(() {
         errorMessage = e.toString();
         isLoading = false;
@@ -100,13 +99,7 @@ class _HomePageState extends State<HomePage>
                 onRefresh: _loadAllData,
                 child: _buildScrollableContent(),
               ),
-        // 중앙 하단 FloatingActionButton
-        floatingActionButton: FloatingActionButton(
-          onPressed: _showAddBloodTestDialog,
-          backgroundColor: FitnessAppTheme.nearlyDarkBlue,
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        //
       ),
     );
   }
@@ -120,10 +113,13 @@ class _HomePageState extends State<HomePage>
           const SizedBox(height: 16),
           Text('오류가 발생했습니다', style: FitnessAppTheme.title),
           const SizedBox(height: 8),
-          Text(
-            errorMessage!,
-            style: FitnessAppTheme.body2.copyWith(color: Colors.grey),
-            textAlign: TextAlign.center,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              errorMessage!,
+              style: FitnessAppTheme.body2.copyWith(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -142,7 +138,7 @@ class _HomePageState extends State<HomePage>
     return ListView(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 16,
-        bottom: 100,
+        bottom: 100, // 하단 네비게이션 바 공간
       ),
       children: [
         _buildTopSection(),
@@ -155,9 +151,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // ========================================
-  // 1️⃣ 상단 섹션: 인체 이미지 + 프로필
-  // ========================================
+  // 상단 섹션 개선
   Widget _buildTopSection() {
     return AnimatedBuilder(
       animation: animationController!,
@@ -175,9 +169,27 @@ class _HomePageState extends State<HomePage>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 1, child: _buildBodyDiagram()),
+                  // 왼쪽: 동적 간 다이어그램 (위험도에 따라 색상 변경)
+                  Expanded(
+                    flex: 1,
+                    child: LiverBodyDiagram(
+                      latestTest: bloodTestList.isNotEmpty
+                          ? bloodTestList.first
+                          : null,
+                      gender: userProfile?['sex'] ?? 'male',
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(flex: 1, child: _buildProfileCard()),
+                  // 오른쪽: 간 건강 차트
+                  Expanded(
+                    flex: 1,
+                    child: LiverHealthStatusCard(
+                      latestTest: bloodTestList.isNotEmpty
+                          ? bloodTestList.first
+                          : null,
+                      gender: userProfile?['sex'] ?? 'male',
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -187,122 +199,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildBodyDiagram() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: FitnessAppTheme.grey.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 0.8,
-            child: Stack(
-              children: [
-                Image.asset('assets/images/body.png', fit: BoxFit.contain),
-                Positioned(
-                  left: 100,
-                  top: 120,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.6),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileCard() {
-    if (userProfile == null) return const SizedBox();
-
-    final name = userProfile!['name'] ?? '사용자';
-    final birthDate = userProfile!['birth_date'] ?? '';
-    final sex = userProfile!['sex'] == 'male' ? '남성' : '여성';
-    final heightValue = userProfile!['height'];
-    final height = heightValue != null ? heightValue.toInt().toString() : '-';
-    final weightValue = userProfile!['weight'];
-    final weight = weightValue != null ? weightValue.toStringAsFixed(1) : '-';
-
-    int age = 0;
-    if (birthDate.isNotEmpty) {
-      try {
-        final birth = DateTime.parse(birthDate);
-        age = DateTime.now().year - birth.year;
-      } catch (e) {
-        age = 0;
-      }
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: FitnessAppTheme.grey.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$name님', style: FitnessAppTheme.title),
-          const Divider(height: 24),
-          _buildProfileItem(Icons.cake, '나이', '${age}세'),
-          _buildProfileItem(Icons.wc, '성별', sex),
-          _buildProfileItem(Icons.height, '신장/체중', '${height}cm / ${weight}kg'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: FitnessAppTheme.nearlyDarkBlue),
-          const SizedBox(width: 8),
-          Text(
-            '$label: ',
-            style: FitnessAppTheme.body2.copyWith(color: Colors.grey),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: FitnessAppTheme.body2.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ========================================
-  // 2️⃣ 중간 섹션: 검사 기록 리스트
-  // ========================================
   Widget _buildBloodTestListSection() {
     return AnimatedBuilder(
       animation: animationController!,
@@ -435,9 +331,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // ========================================
-  // 3️⃣ 하단 섹션: 시계열 그래프
-  // ========================================
   Widget _buildTimeSeriesGraphsSection() {
     if (bloodTestList.isEmpty) return const SizedBox();
 
@@ -462,13 +355,19 @@ class _HomePageState extends State<HomePage>
 
       final albiGrade = test['albi_grade'];
       double? gradeValue;
+
       if (albiGrade != null) {
         if (albiGrade is num) {
           gradeValue = albiGrade.toDouble();
         } else if (albiGrade is String) {
-          gradeValue = double.tryParse(albiGrade);
+          final cleanGrade = albiGrade.toLowerCase().replaceAll(
+            RegExp(r'[^0-9.]'),
+            '',
+          );
+          gradeValue = double.tryParse(cleanGrade);
         }
       }
+
       albiGradeValues.add(gradeValue ?? 0);
     }
 
@@ -532,7 +431,7 @@ class _HomePageState extends State<HomePage>
                 'Albumin': const Color(0xFF9C27B0),
                 'ALBI Grade': const Color(0xFFFF9800),
               },
-              isAlbiGrade: true, // 👈 ALBI Grade 표시용
+              isAlbiGrade: true,
             ),
         ],
       ),
@@ -633,7 +532,7 @@ class _HomePageState extends State<HomePage>
     required Map<String, List<double>> dataLines,
     required Map<String, Color> lineColors,
     double? normalMax,
-    bool isAlbiGrade = false, // 👈 ALBI Grade 여부
+    bool isAlbiGrade = false,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -671,18 +570,11 @@ class _HomePageState extends State<HomePage>
             title: title,
             lineColors: lineColors,
             normalMax: normalMax,
-            isAlbiGrade: isAlbiGrade, // 👈 전달
+            isAlbiGrade: isAlbiGrade,
           ),
         ],
       ),
     );
-  }
-
-  // ========================================
-  // CRUD 다이얼로그
-  // ========================================
-  void _showAddBloodTestDialog() {
-    _showBloodTestDialog(isEdit: false, initialData: null);
   }
 
   void _showEditBloodTestDialog(Map<String, dynamic> test) {
@@ -722,6 +614,7 @@ class _HomePageState extends State<HomePage>
         text: initialData?['total_protein']?.toString() ?? '',
       ),
       'pt': TextEditingController(text: initialData?['pt']?.toString() ?? ''),
+      'inr': TextEditingController(text: initialData?['inr']?.toString() ?? ''),
       'platelet': TextEditingController(
         text: initialData?['platelet']?.toString() ?? '',
       ),
@@ -730,7 +623,7 @@ class _HomePageState extends State<HomePage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEdit ? '검사 수정' : '검사 추가', style: FitnessAppTheme.title),
+        title: Text('검사 수정', style: FitnessAppTheme.title),
         content: SingleChildScrollView(
           child: Form(
             key: formKey,
@@ -793,7 +686,6 @@ class _HomePageState extends State<HomePage>
                     'taken_at': dateController.text,
                   };
 
-                  // 🔧 빈 값은 null, 값이 있으면 숫자로
                   for (var entry in controllers.entries) {
                     final text = entry.value.text.trim();
                     data[entry.key] = text.isEmpty
@@ -801,18 +693,10 @@ class _HomePageState extends State<HomePage>
                         : double.tryParse(text);
                   }
 
-                  print('📤 전송 데이터: $data');
-
-                  if (isEdit) {
-                    print('✏️ 수정 ID: ${initialData!['blood_result_id']}');
-                    await DashboardService.updateBloodTest(
-                      initialData!['blood_result_id'],
-                      data,
-                    );
-                  } else {
-                    print('➕ 추가 모드');
-                    await DashboardService.createBloodTest(data);
-                  }
+                  await DashboardService.updateBloodTest(
+                    initialData!['blood_result_id'],
+                    data,
+                  );
 
                   Navigator.pop(context);
                   ScaffoldMessenger.of(
@@ -820,7 +704,6 @@ class _HomePageState extends State<HomePage>
                   ).showSnackBar(const SnackBar(content: Text('저장되었습니다')));
                   _loadAllData();
                 } catch (e) {
-                  print('❌ 에러: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('저장 실패: $e'),
@@ -832,7 +715,8 @@ class _HomePageState extends State<HomePage>
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: FitnessAppTheme.nearlyDarkBlue,
+              backgroundColor: const Color.fromARGB(255, 71, 76, 141),
+              foregroundColor: Colors.white,
             ),
             child: const Text('저장'),
           ),
@@ -861,6 +745,7 @@ class _HomePageState extends State<HomePage>
               _buildDetailItem('ALP', test['alp'], 'U/L'),
               _buildDetailItem('Total Protein', test['total_protein'], 'g/dL'),
               _buildDetailItem('PT', test['pt'], 'sec'),
+              _buildDetailItem('INR', test['inr'], ''),
               _buildDetailItem('Platelet', test['platelet'], '×10³/μL'),
             ],
           ),
@@ -946,9 +831,9 @@ class _HomePageState extends State<HomePage>
   // ========================================
   void _navigateToSurvivalPrediction(Map<String, dynamic> test) {
     if (userProfile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('프로필 정보를 불러올 수 없습니다')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('프로필 정보를 불러올 수 없습니다')));
       return;
     }
 

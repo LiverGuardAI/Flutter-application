@@ -53,14 +53,22 @@ class DashboardService {
       if (patientId == null) {
         throw Exception('로그인 정보가 없습니다. 다시 로그인해주세요.');
       }
+
       final requestData = {...data, 'patient_id': patientId};
 
       print('Creating blood test with data: $requestData');
 
-      await DioClient.dio.post('/blood-results/', data: requestData);
+      final response = await DioClient.dio.post(
+        '/blood-results/',
+        data: requestData,
+      );
+
+      print('✅ Create response: ${response.data}');
     } on DioException catch (e) {
-      print('Error creating blood test: ${e.response?.data}');
-      throw Exception('검사 기록 추가 실패: ${e.message}');
+      print('❌ Error creating blood test: ${e.response?.data}');
+      print('❌ Error message: ${e.message}');
+      print('❌ Status code: ${e.response?.statusCode}');
+      throw Exception('검사 기록 추가 실패: ${e.response?.data ?? e.message}');
     }
   }
 
@@ -70,29 +78,55 @@ class DashboardService {
     Map<String, dynamic> data,
   ) async {
     try {
+      // patient_id 포함하여 전송 (백엔드에서 필요할 수 있음)
+      final patientId = await SecureStorage.read('patient_id');
+
+      // 불필요한 필드만 제거
       final requestData = Map<String, dynamic>.from(data);
-      requestData.remove('patient_id');
-      requestData.remove('patient');
       requestData.remove('blood_result_id');
       requestData.remove('created_at');
+      requestData.remove('patient_name');
 
-      print('Updating blood test $bloodResultId with data: $requestData');
+      // patient_id 추가
+      if (patientId != null) {
+        requestData['patient_id'] = patientId;
+      }
 
-      await DioClient.dio.put(
+      print('Updating blood test $bloodResultId');
+      print('Request data: $requestData');
+      print('URL: /blood-results/$bloodResultId/');
+
+      final response = await DioClient.dio.put(
         '/blood-results/$bloodResultId/',
         data: requestData,
       );
+
+      print('✅ Update response status: ${response.statusCode}');
+      print('✅ Update response data: ${response.data}');
     } on DioException catch (e) {
-      print('Error updating blood test: ${e.response?.data}');
-      throw Exception('검사 기록 수정 실패: ${e.message}');
+      print('❌ Error updating blood test');
+      print('❌ Status code: ${e.response?.statusCode}');
+      print('❌ Response data: ${e.response?.data}');
+      print('❌ Error message: ${e.message}');
+      print('❌ Request path: ${e.requestOptions.path}');
+      print('❌ Request data: ${e.requestOptions.data}');
+
+      throw Exception('검사 기록 수정 실패: ${e.response?.data ?? e.message}');
     }
   }
 
   // 검사 기록 삭제
   static Future<void> deleteBloodTest(int bloodResultId) async {
     try {
-      await DioClient.dio.delete('/blood-results/$bloodResultId/');
+      print('Deleting blood test $bloodResultId');
+
+      final response = await DioClient.dio.delete(
+        '/blood-results/$bloodResultId/',
+      );
+
+      print('✅ Delete response: ${response.statusCode}');
     } on DioException catch (e) {
+      print('❌ Error deleting: ${e.response?.data}');
       throw Exception('검사 기록 삭제 실패: ${e.message}');
     }
   }

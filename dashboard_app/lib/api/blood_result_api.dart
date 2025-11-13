@@ -11,17 +11,19 @@ class BloodResultApi {
   //  혈액검사 기록 추가 API
   // ---------------------------------------------------
   static Future<bool> addBloodResult({
-    required double afp,
-    required double ast,
-    required double alt,
-    required double ggt,
-    required double rGtp,
+    required int patientId,
+    required int ast,
+    required int alt,
+    required int alp,
+    required int ggt,
+    required int rGtp,
     required double bilirubin,
     required double albumin,
-    required double alp,
-    required double totalProtein,
+    required double inr,
     required double pt,
-    required double platelet,
+    required int platelet,
+    required int afp,
+    required double totalProtein,
     required DateTime takenAt,
   }) async {
     try {
@@ -45,6 +47,7 @@ class BloodResultApi {
           "total_protein": totalProtein,
           "pt": pt,
           "platelet": platelet,
+          "inr": inr,
           "taken_at": DateFormat("yyyy-MM-dd").format(takenAt),
         },
       );
