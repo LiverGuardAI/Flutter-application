@@ -14,6 +14,7 @@ class _BloodTestAddPageState extends State<BloodTestAddPage> {
   final afpController = TextEditingController();
   final astController = TextEditingController();
   final altController = TextEditingController();
+  final alpController = TextEditingController();
   final ggtController = TextEditingController();
   final rGtpController = TextEditingController();
   final bilirubinController = TextEditingController();

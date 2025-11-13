@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/dashboard_service.dart';
 import '../themes/fitness_app/fitness_app_theme.dart';
 
-import '../widgets/blood_test_line_chart.dart';
 import 'survival_prediction_page.dart';
-
 import '../widgets/stylish_blood_test_chart.dart';
 import '../widgets/liver_health_status_card.dart';
 import '../widgets/liver_body_diagram.dart';
