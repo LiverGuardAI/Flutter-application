@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.dashboard_app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion = flutter.ndkVersion  // NDK 버전 자동 선택
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
