@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../api/blood_result_api.dart'; // ← API 호출 import 추가
+import '../api/blood_result_api.dart';
 
 class BloodTestAddPage extends StatefulWidget {
   @override
@@ -46,8 +46,7 @@ class _BloodTestAddPageState extends State<BloodTestAddPage> {
               _buildNumberField("Albumin (g/dL)", albuminController),
               _buildNumberField("INR", inrController),
               _buildNumberField("PT (sec)", ptController),
-              _buildNumberField("Platelet (10³/µL)", plateletController),
-              _buildNumberField("AFP (ng/mL)", afpController),
+              _buildNumberField("Platelet (0³/µL)", plateletController),
               _buildNumberField("Total Protein (g/dL)", totalProteinController),
               SizedBox(height: 20),
 
@@ -89,22 +88,20 @@ class _BloodTestAddPageState extends State<BloodTestAddPage> {
 
     // Django API 호출
     bool success = await BloodResultApi.addBloodResult(
-      patientId: 1,
-      ast: int.parse(astController.text),
-      alt: int.parse(altController.text),
-      alp: int.parse(alpController.text),
-      ggt: int.parse(ggtController.text),
-      rGtp: _parseIntSafe(rGtpController.text),
-      bilirubin: double.parse(bilirubinController.text),
-      albumin: double.parse(albuminController.text),
-      inr: double.parse(inrController.text),
+      afp: _parseDoubleSafe(afpController.text),
+      ast: _parseDoubleSafe(astController.text),
+      alt: _parseDoubleSafe(altController.text),
+      alp: _parseDoubleSafe(alpController.text),
+      ggt: _parseDoubleSafe(ggtController.text),
+      rGtp: _parseDoubleSafe(rGtpController.text),
+      bilirubin: _parseDoubleSafe(bilirubinController.text),
+      albumin: _parseDoubleSafe(albuminController.text),
+      inr: _parseDoubleSafe(inrController.text),
       pt: _parseDoubleSafe(ptController.text),
-      platelet: int.parse(plateletController.text),
-      afp: int.parse(afpController.text),
+      platelet: _parseDoubleSafe(plateletController.text),
       totalProtein: _parseDoubleSafe(totalProteinController.text),
       takenAt: selectedDate!,
     );
-
     if (success) {
       ScaffoldMessenger.of(
         context,

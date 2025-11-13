@@ -11,18 +11,17 @@ class BloodResultApi {
   //  혈액검사 기록 추가 API
   // ---------------------------------------------------
   static Future<bool> addBloodResult({
-    required int patientId,
-    required int ast,
-    required int alt,
-    required int alp,
-    required int ggt,
-    required int rGtp,
+    required double ast,
+    required double alt,
+    required double alp,
+    required double ggt,
+    required double rGtp,
     required double bilirubin,
     required double albumin,
     required double inr,
     required double pt,
-    required int platelet,
-    required int afp,
+    required double platelet,
+    required double afp,
     required double totalProtein,
     required DateTime takenAt,
   }) async {
@@ -39,19 +38,18 @@ class BloodResultApi {
           "afp": afp,
           "ast": ast,
           "alt": alt,
+          "alp": alp,
           "ggt": ggt,
           "r_gtp": rGtp,
           "bilirubin": bilirubin,
           "albumin": albumin,
-          "alp": alp,
-          "total_protein": totalProtein,
+          "inr": inr,
           "pt": pt,
           "platelet": platelet,
-          "inr": inr,
+          "total_protein": totalProtein,
           "taken_at": DateFormat("yyyy-MM-dd").format(takenAt),
         },
       );
-
       return response.statusCode == 201;
     } catch (e) {
       print("❌ BloodResultApi.addBloodResult Error: $e");
