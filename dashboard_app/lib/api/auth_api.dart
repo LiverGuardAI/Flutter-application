@@ -117,4 +117,45 @@ class AuthApi {
       return {"success": false, "message": e.response?.data ?? "프로필 불러오기 실패"};
     }
   }
+
+  // profile edit api
+  static Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String birthDate,
+    required String sex,
+    required double height,
+    required double weight,
+    required String address,
+    required String phone,
+  }) async {
+    final dio = DioClient.dio;
+
+    try {
+      final patientId = await SecureStorage.read("patient_id");
+      if (patientId == null) {
+        return {"success": false, "message": "로그인 정보가 없습니다."};
+      }
+
+      final response = await dio.patch(
+        "/patients/$patientId/",
+        data: {
+          "name": name,
+          "birth_date": birthDate, // yyyy-MM-dd
+          "sex": sex, // male/female
+          "height": height,
+          "weight": weight,
+          "address": address,
+          "phone": phone,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {"success": true, "data": response.data};
+      }
+
+      return {"success": false, "message": response.data.toString()};
+    } on DioException catch (e) {
+      return {"success": false, "message": e.response?.data ?? "프로필 수정 실패"};
+    }
+  }
 }

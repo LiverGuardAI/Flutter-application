@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../api/auth_api.dart';
 import '../utils/secure_storage.dart';
+import 'profile_edit_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -129,6 +130,35 @@ class _ProfilePageState extends State<ProfilePage> {
                   _infoTile(Icons.height, "키 (cm)", user["height"]),
                   _infoTile(Icons.monitor_weight, "체중 (kg)", user["weight"]),
                 ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final updated = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileEditPage(userData: userData!),
+                  ),
+                );
+                if (updated == true) {
+                  _loadProfile(); // 🔥 수정 후 자동 새로고침
+                }
+              },
+              icon: Icon(Icons.edit),
+              label: Text("프로필 수정"),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
