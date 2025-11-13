@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// 🎨 멋진 혈액 검사 시계열 그래프 (GitHub 샘플 스타일)
+// 멋진 혈액 검사 시계열 그래프 (GitHub 샘플 스타일)
 class StylishBloodTestChart extends StatelessWidget {
   final List<DateTime> dates;
   final Map<String, List<double>> dataLines;
@@ -10,7 +10,7 @@ class StylishBloodTestChart extends StatelessWidget {
   final Map<String, Color> lineColors;
   final double? normalMin;
   final double? normalMax;
-  final bool isAlbiGrade; // 👈 ALBI Grade 여부
+  final bool isAlbiGrade;
 
   const StylishBloodTestChart({
     Key? key,
@@ -39,11 +39,8 @@ class StylishBloodTestChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 범례
           _buildLegend(),
           const SizedBox(height: 16),
-
-          // 그래프
           SizedBox(
             height: 250,
             child: LineChart(
@@ -56,7 +53,6 @@ class StylishBloodTestChart extends StatelessWidget {
     );
   }
 
-  // 범례 생성
   Widget _buildLegend() {
     return Wrap(
       spacing: 16,
@@ -117,32 +113,9 @@ class StylishBloodTestChart extends StatelessWidget {
           sideTitles: SideTitles(showTitles: false),
         ),
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 30,
-            interval: 1,
-            getTitlesWidget: (value, meta) {
-              final index = value.toInt();
-              if (index < 0 || index >= dates.length) return const Text('');
-
-              // 🔧 월.일 형식으로 표시
-              if (index % (dates.length > 5 ? 2 : 1) == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    DateFormat('MM.dd').format(dates[index]), // 👈 변경
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                );
-              }
-              return const Text('');
-            },
-          ),
+        // 🔧 X축 날짜 제거!
+        bottomTitles: const AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
         ),
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
@@ -177,18 +150,44 @@ class StylishBloodTestChart extends StatelessWidget {
 
       lineBarsData: _buildLineBarsData(),
 
-      // 🔧 툴팁 개선
+      // 🔧 툴팁 즉시 표시 (터치 지연 없음)
       lineTouchData: LineTouchData(
         enabled: true,
+        touchSpotThreshold: 50,
+        getTouchedSpotIndicator:
+            (LineChartBarData barData, List<int> spotIndexes) {
+              return spotIndexes.map((index) {
+                return TouchedSpotIndicatorData(
+                  FlLine(
+                    color: Colors.white.withOpacity(0.5),
+                    strokeWidth: 2,
+                    dashArray: [5, 5],
+                  ),
+                  FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) {
+                      return FlDotCirclePainter(
+                        radius: 6,
+                        color: barData.color ?? Colors.blue,
+                        strokeWidth: 3,
+                        strokeColor: Colors.white,
+                      );
+                    },
+                  ),
+                );
+              }).toList();
+            },
         touchTooltipData: LineTouchTooltipData(
           getTooltipColor: (touchedSpot) => const Color(0xFF37474F),
+          tooltipRoundedRadius: 8,
+          tooltipPadding: const EdgeInsets.all(8),
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((spot) {
               final date = dates[spot.x.toInt()];
               final lineName = dataLines.keys.elementAt(spot.barIndex);
               final value = spot.y;
 
-              // 🎯 ALBI Grade는 "Grade 1" 형식으로 표시
+              // ALBI Grade는 "Grade 1" 형식으로 표시
               String valueText;
               if (isAlbiGrade && lineName == 'ALBI Grade') {
                 final gradeNum = value.round();
@@ -198,11 +197,12 @@ class StylishBloodTestChart extends StatelessWidget {
               }
 
               return LineTooltipItem(
-                '$lineName\n${DateFormat('yyyy-MM-dd').format(date)}\n$valueText',
+                '$lineName\n${DateFormat('yyyy.MM.dd').format(date)}\n$valueText',
                 const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
+                  height: 1.4,
                 ),
               );
             }).toList();
