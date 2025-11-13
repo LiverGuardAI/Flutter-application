@@ -11,14 +11,14 @@ class DioClient {
     ),
   );
 
-  // ✅ 앱 시작 시 interceptor 초기화
+  // 앱 시작 시 interceptor 초기화
   static Future<void> initialize() async {
     dio.interceptors.clear();
 
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // ✅ utils SecureStorage 사용
+          // utils SecureStorage 사용
           final accessToken = await SecureStorage.read("access");
 
           if (accessToken != null && accessToken.isNotEmpty) {
@@ -29,27 +29,29 @@ class DioClient {
         },
 
         onError: (DioException error, handler) async {
-          // ✅ Access Token 만료 시 자동 Refresh
+          // 먼저: refresh 요청 자체라면 다시 refresh 시도하지 말고 종료
+          if (error.requestOptions.path.contains("/auth/refresh")) {
+            await SecureStorage.deleteAll();
+            return handler.next(error); // refresh 실패 → 그냥 에러로 넘김
+          }
+          // Access Token 만료 시 자동 Refresh
           if (error.response?.statusCode == 401) {
             final refreshToken = await SecureStorage.read("refresh");
-
             if (refreshToken != null) {
               try {
                 final refreshResponse = await dio.post(
                   "/auth/refresh/",
                   data: {"refresh": refreshToken},
                 );
-
                 final newAccess = refreshResponse.data["access"];
-
-                // ✅ 새 Access Token 저장
+                // 새 Access Token 저장
                 await SecureStorage.save("access", newAccess);
 
-                // ✅ 실패했던 요청 header 수정
+                // 실패했던 요청 header 수정
                 error.requestOptions.headers["Authorization"] =
                     "Bearer $newAccess";
 
-                // ✅ 실패한 요청을 다시 실행
+                // 실패한 요청을 다시 실행
                 final cloned = await dio.request(
                   error.requestOptions.path,
                   options: Options(
@@ -62,7 +64,7 @@ class DioClient {
 
                 return handler.resolve(cloned);
               } catch (_) {
-                // ✅ Refresh도 실패 → 로그아웃 처리
+                // Refresh도 실패 → 로그아웃 처리
                 await SecureStorage.deleteAll();
               }
             }

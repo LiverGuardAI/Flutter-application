@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/survival_service.dart';
 import '../themes/fitness_app/fitness_app_theme.dart';
@@ -157,23 +158,21 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
   Widget _buildResultView() {
     if (predictionResult == null) return const SizedBox();
 
-    // API 응답 구조에 따라 수정 필요
+    // API 응답 구조: survival_probability, target_day, plot_base64
     final survivalProbability =
         predictionResult!['survival_probability'] ?? 0.0;
-    final riskLevel = predictionResult!['risk_level'] ?? 'Unknown';
-    final confidenceScore = predictionResult!['confidence_score'] ?? 0.0;
+    final targetDay = predictionResult!['target_day'] ?? 1825;
+    final plotBase64 = predictionResult!['plot_base64'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSurvivalCard(survivalProbability),
+          _buildSurvivalCard(survivalProbability, targetDay),
           const SizedBox(height: 16),
-          _buildRiskLevelCard(riskLevel),
-          const SizedBox(height: 16),
-          _buildConfidenceCard(confidenceScore),
-          const SizedBox(height: 16),
+          if (plotBase64 != null) _buildPlotCard(plotBase64),
+          if (plotBase64 != null) const SizedBox(height: 16),
           _buildInputDataCard(),
           const SizedBox(height: 16),
           _buildDisclaimerCard(),
@@ -182,8 +181,9 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
     );
   }
 
-  Widget _buildSurvivalCard(double probability) {
+  Widget _buildSurvivalCard(double probability, int targetDay) {
     final percentage = (probability * 100).toStringAsFixed(1);
+    final years = (targetDay / 365).toStringAsFixed(0);
     Color progressColor = Colors.green;
     if (probability < 0.3) {
       progressColor = Colors.red;
@@ -210,9 +210,9 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
       ),
       child: Column(
         children: [
-          const Text(
-            '생존 확률',
-            style: TextStyle(
+          Text(
+            '$years년 생존 확률',
+            style: const TextStyle(
               color: Colors.white70,
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -255,69 +255,7 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
     );
   }
 
-  Widget _buildRiskLevelCard(String riskLevel) {
-    IconData icon = Icons.check_circle;
-    Color color = Colors.green;
-    String description = '정상 범위';
-
-    if (riskLevel.toLowerCase().contains('high')) {
-      icon = Icons.warning;
-      color = Colors.red;
-      description = '고위험군';
-    } else if (riskLevel.toLowerCase().contains('medium')) {
-      icon = Icons.info;
-      color = Colors.orange;
-      description = '중위험군';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: FitnessAppTheme.grey.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 32),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '위험도',
-                  style: FitnessAppTheme.body2.copyWith(color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: FitnessAppTheme.title.copyWith(color: color),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConfidenceCard(double confidence) {
-    final percentage = (confidence * 100).toStringAsFixed(1);
-
+  Widget _buildPlotCard(String base64Image) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -334,16 +272,15 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('신뢰도', style: FitnessAppTheme.subtitle),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: confidence,
-            backgroundColor: Colors.grey[200],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-            minHeight: 8,
+          Text('생존 곡선', style: FitnessAppTheme.title),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              base64Decode(base64Image),
+              fit: BoxFit.contain,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text('$percentage%', style: FitnessAppTheme.body2),
         ],
       ),
     );
