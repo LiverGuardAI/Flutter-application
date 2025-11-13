@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/dashboard_service.dart';
 import '../themes/fitness_app/fitness_app_theme.dart';
 import '../widgets/blood_test_line_chart.dart';
+import 'survival_prediction_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -869,6 +870,17 @@ class _HomePageState extends State<HomePage>
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
           ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToSurvivalPrediction(test);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: FitnessAppTheme.nearlyDarkBlue,
+            ),
+            icon: const Icon(Icons.analytics, color: Colors.white),
+            label: const Text('생존확률 예측', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
@@ -927,5 +939,42 @@ class _HomePageState extends State<HomePage>
         ).showSnackBar(SnackBar(content: Text('삭제 실패: $e')));
       }
     }
+  }
+
+  // ========================================
+  // 생존확률 예측 페이지로 이동
+  // ========================================
+  void _navigateToSurvivalPrediction(Map<String, dynamic> test) {
+    if (userProfile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('프로필 정보를 불러올 수 없습니다')),
+      );
+      return;
+    }
+
+    // 필수 데이터 검증
+    final afp = _parseToDouble(test['afp']);
+    final albumin = _parseToDouble(test['albumin']);
+    final pt = _parseToDouble(test['pt']);
+
+    if (afp == null || albumin == null || pt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('필수 혈액검사 데이터(AFP, Albumin, PT)가 없습니다'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SurvivalPredictionPage(
+          userProfile: userProfile!,
+          bloodTestData: test,
+        ),
+      ),
+    );
   }
 }
