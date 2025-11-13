@@ -1,4 +1,4 @@
-// 🔥 혈액검사 결과 모델
+// 혈액검사 결과 모델
 class DashboardGraphs {
   final String patientName;
   final String testDate;
@@ -53,8 +53,23 @@ class SecondaryGraphs {
   final String? rGtp;
   final String? bilirubin;
   final String? albumin;
+  final String? alp;
+  final String? totalProtein;
+  final String? platelet;
+  final String? inr;
+  final String? pt;
 
-  SecondaryGraphs({this.ggt, this.rGtp, this.bilirubin, this.albumin});
+  SecondaryGraphs({
+    this.ggt,
+    this.rGtp,
+    this.bilirubin,
+    this.albumin,
+    this.alp,
+    this.totalProtein,
+    this.platelet,
+    this.inr,
+    this.pt,
+  });
 
   factory SecondaryGraphs.fromJson(Map<String, dynamic> json) {
     return SecondaryGraphs(
@@ -62,6 +77,11 @@ class SecondaryGraphs {
       rGtp: json['r_gtp'],
       bilirubin: json['bilirubin'],
       albumin: json['albumin'],
+      alp: json['alp'],
+      totalProtein: json['total_protein'],
+      platelet: json['platelet'],
+      inr: json['inr'],
+      pt: json['pt'],
     );
   }
 }
