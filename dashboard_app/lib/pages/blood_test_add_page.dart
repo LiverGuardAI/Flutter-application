@@ -11,15 +11,17 @@ class _BloodTestAddPageState extends State<BloodTestAddPage> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
+  final afpController = TextEditingController();
   final astController = TextEditingController();
   final altController = TextEditingController();
-  final alpController = TextEditingController();
   final ggtController = TextEditingController();
+  final rGtpController = TextEditingController();
   final bilirubinController = TextEditingController();
   final albuminController = TextEditingController();
-  final inrController = TextEditingController();
+  final alpController = TextEditingController();
+  final totalProteinController = TextEditingController();
+  final ptController = TextEditingController();
   final plateletController = TextEditingController();
-  final afpController = TextEditingController();
 
   DateTime? selectedDate;
 
@@ -34,15 +36,17 @@ class _BloodTestAddPageState extends State<BloodTestAddPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildNumberField("AFP (ng/mL)", afpController),
               _buildNumberField("AST (IU/L)", astController),
               _buildNumberField("ALT (IU/L)", altController),
-              _buildNumberField("ALP (IU/L)", alpController),
               _buildNumberField("GGT (IU/L)", ggtController),
+              _buildNumberField("R-GTP (IU/L)", rGtpController),
               _buildNumberField("Bilirubin (mg/dL)", bilirubinController),
               _buildNumberField("Albumin (g/dL)", albuminController),
-              _buildNumberField("INR", inrController),
+              _buildNumberField("ALP (IU/L)", alpController),
+              _buildNumberField("Total Protein (g/dL)", totalProteinController),
+              _buildNumberField("PT (sec)", ptController),
               _buildNumberField("Platelet (10³/µL)", plateletController),
-              _buildNumberField("AFP (ng/mL)", afpController),
               SizedBox(height: 20),
 
               Text(
@@ -83,16 +87,17 @@ class _BloodTestAddPageState extends State<BloodTestAddPage> {
 
     // 🔥 Django API 호출
     bool success = await BloodResultApi.addBloodResult(
-      patientId: 1, // TODO: 실제 로그인 사용자 patient_id로 변경
-      ast: int.parse(astController.text),
-      alt: int.parse(altController.text),
-      alp: int.parse(alpController.text),
-      ggt: int.parse(ggtController.text),
+      afp: double.parse(afpController.text),
+      ast: double.parse(astController.text),
+      alt: double.parse(altController.text),
+      ggt: double.parse(ggtController.text),
+      rGtp: double.parse(rGtpController.text),
       bilirubin: double.parse(bilirubinController.text),
       albumin: double.parse(albuminController.text),
-      inr: double.parse(inrController.text),
-      platelet: int.parse(plateletController.text),
-      afp: int.parse(afpController.text),
+      alp: double.parse(alpController.text),
+      totalProtein: double.parse(totalProteinController.text),
+      pt: double.parse(ptController.text),
+      platelet: double.parse(plateletController.text),
       takenAt: selectedDate!,
     );
 

@@ -11,16 +11,17 @@ class BloodResultApi {
   //  혈액검사 기록 추가 API
   // ---------------------------------------------------
   static Future<bool> addBloodResult({
-    required int patientId,
-    required int ast,
-    required int alt,
-    required int alp,
-    required int ggt,
+    required double afp,
+    required double ast,
+    required double alt,
+    required double ggt,
+    required double rGtp,
     required double bilirubin,
     required double albumin,
-    required double inr,
-    required int platelet,
-    required int afp,
+    required double alp,
+    required double totalProtein,
+    required double pt,
+    required double platelet,
     required DateTime takenAt,
   }) async {
     try {
@@ -33,15 +34,17 @@ class BloodResultApi {
         "/blood-results/", // ✔ baseUrl 뒤에 자동으로 붙음
         data: {
           "patient_id": storedPatientId,
+          "afp": afp,
           "ast": ast,
           "alt": alt,
-          "alp": alp,
           "ggt": ggt,
+          "r_gtp": rGtp,
           "bilirubin": bilirubin,
           "albumin": albumin,
-          "inr": inr,
+          "alp": alp,
+          "total_protein": totalProtein,
+          "pt": pt,
           "platelet": platelet,
-          "afp": afp,
           "taken_at": DateFormat("yyyy-MM-dd").format(takenAt),
         },
       );

@@ -34,22 +34,11 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
     });
 
     try {
-      // 🔍 디버깅: 전체 프로필 데이터 확인
-      print('🔍 ===== 프로필 데이터 디버깅 =====');
-      print('📦 전체 userProfile: ${widget.userProfile}');
-      print('📦 전체 bloodTestData: ${widget.bloodTestData}');
-
       // 프로필에서 데이터 추출
       final sex = widget.userProfile['sex'] ?? 'male';
       final birthDate = widget.userProfile['birth_date'] ?? '';
       final height = (widget.userProfile['height'] ?? 0).toDouble();
       final weight = (widget.userProfile['weight'] ?? 0).toDouble();
-
-      print('📊 추출된 프로필 데이터:');
-      print('  - sex: $sex (원본: ${widget.userProfile['sex']})');
-      print('  - birthDate: $birthDate (원본: ${widget.userProfile['birth_date']})');
-      print('  - height: $height (원본: ${widget.userProfile['height']})');
-      print('  - weight: $weight (원본: ${widget.userProfile['weight']})');
 
       // 나이 계산
       int age = 0;
@@ -69,16 +58,6 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
       final afp = _parseToDouble(widget.bloodTestData['afp']) ?? 0.0;
       final albumin = _parseToDouble(widget.bloodTestData['albumin']) ?? 0.0;
       final pt = _parseToDouble(widget.bloodTestData['pt']) ?? 0.0;
-
-      print('📤 전송 데이터:');
-      print('  sex: $sex');
-      print('  age: $age');
-      print('  height: $height');
-      print('  weight: $weight');
-      print('  bmi: $bmi');
-      print('  AFP: $afp');
-      print('  albumin: $albumin');
-      print('  PT: $pt');
 
       // API 호출
       final result = await SurvivalService.predictSurvival(
@@ -123,8 +102,8 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
         child: isLoading
             ? _buildLoadingView()
             : errorMessage != null
-                ? _buildErrorView()
-                : _buildResultView(),
+            ? _buildErrorView()
+            : _buildResultView(),
       ),
     );
   }
@@ -179,7 +158,8 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
     if (predictionResult == null) return const SizedBox();
 
     // API 응답 구조에 따라 수정 필요
-    final survivalProbability = predictionResult!['survival_probability'] ?? 0.0;
+    final survivalProbability =
+        predictionResult!['survival_probability'] ?? 0.0;
     final riskLevel = predictionResult!['risk_level'] ?? 'Unknown';
     final confidenceScore = predictionResult!['confidence_score'] ?? 0.0;
 
@@ -264,10 +244,7 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
                   ),
                   const Text(
                     '생존 가능성',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
@@ -321,9 +298,15 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('위험도', style: FitnessAppTheme.body2.copyWith(color: Colors.grey)),
+                Text(
+                  '위험도',
+                  style: FitnessAppTheme.body2.copyWith(color: Colors.grey),
+                ),
                 const SizedBox(height: 4),
-                Text(description, style: FitnessAppTheme.title.copyWith(color: color)),
+                Text(
+                  description,
+                  style: FitnessAppTheme.title.copyWith(color: color),
+                ),
               ],
             ),
           ),
@@ -385,9 +368,13 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
       weight.toDouble(),
     ).toStringAsFixed(1);
 
-    final afp = _parseToDouble(widget.bloodTestData['afp'])?.toStringAsFixed(1) ?? '-';
-    final albumin = _parseToDouble(widget.bloodTestData['albumin'])?.toStringAsFixed(1) ?? '-';
-    final pt = _parseToDouble(widget.bloodTestData['pt'])?.toStringAsFixed(1) ?? '-';
+    final afp =
+        _parseToDouble(widget.bloodTestData['afp'])?.toStringAsFixed(1) ?? '-';
+    final albumin =
+        _parseToDouble(widget.bloodTestData['albumin'])?.toStringAsFixed(1) ??
+        '-';
+    final pt =
+        _parseToDouble(widget.bloodTestData['pt'])?.toStringAsFixed(1) ?? '-';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -427,8 +414,14 @@ class _SurvivalPredictionPageState extends State<SurvivalPredictionPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: FitnessAppTheme.body2.copyWith(color: Colors.grey)),
-          Text(value, style: FitnessAppTheme.body2.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: FitnessAppTheme.body2.copyWith(color: Colors.grey),
+          ),
+          Text(
+            value,
+            style: FitnessAppTheme.body2.copyWith(fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
