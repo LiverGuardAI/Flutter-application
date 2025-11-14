@@ -21,31 +21,20 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
       point: const LatLng(37.5665, 126.9780),
       width: 80,
       height: 80,
-      child: const Icon(
-        Icons.local_hospital,
-        color: Colors.red,
-        size: 40,
-      ),
+      child: const Icon(Icons.local_hospital, color: Colors.red, size: 40),
     ),
     Marker(
       point: const LatLng(37.5700, 126.9850),
       width: 80,
       height: 80,
-      child: const Icon(
-        Icons.local_hospital,
-        color: Colors.red,
-        size: 40,
-      ),
+      child: const Icon(Icons.local_hospital, color: Colors.red, size: 40),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('병원 지도'),
-        backgroundColor: Colors.blue,
-      ),
+      appBar: AppBar(title: const Text('병원 지도'), backgroundColor: Colors.blue),
       body: FlutterMap(
         mapController: _mapController,
         options: MapOptions(
@@ -62,9 +51,7 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
             maxZoom: 19,
           ),
           // 병원 마커 레이어
-          MarkerLayer(
-            markers: _hospitalMarkers,
-          ),
+          MarkerLayer(markers: _hospitalMarkers),
         ],
       ),
       // 지도 컨트롤 버튼
