@@ -9,7 +9,7 @@ import '../utils/secure_storage.dart';
 
 class ApiService {
   // 기존 인증/대시보드 서버
-  static const String baseUrl = 'http://34.67.62.238:8000';
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   // --- [신규] DDI 서버 (api_v2.py) ---
   // [중요!] 안드로이드 에뮬레이터는 10.0.2.2가 PC의 127.0.0.1입니다.
@@ -22,7 +22,9 @@ class ApiService {
     try {
       final token = await SecureStorage.read('access');
       if (token != null && token.isNotEmpty) {
-        print('토큰 로드: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+        print(
+          '토큰 로드: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
+        );
         return token;
       }
       print('저장된 토큰 없음');
