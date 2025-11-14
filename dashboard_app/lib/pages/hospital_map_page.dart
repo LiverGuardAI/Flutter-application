@@ -3,7 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/healthcare_service.dart';
 import '../services/geocoding_service.dart';
+import '../services/api_service.dart';
 import '../models/healthcare_model.dart';
+import '../models/favorite_model.dart';
 import '../themes/fitness_app/fitness_app_theme.dart';
 
 class HospitalMapPage extends StatefulWidget {
@@ -19,6 +21,7 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
 
   // 서울 시청 좌표
   final LatLng _center = const LatLng(37.5663, 126.9779);
+  LatLng? _searchLocation;
 
   List<Hospital> _hospitals = [];
   List<Clinic> _clinics = [];
@@ -32,12 +35,18 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
 
   // 마커 캐시
   List<Marker> _cachedMarkers = [];
+  List<FavoritePlace> _favorites = [];
+  String _favoriteTypeFilter = 'all';
+  String _favoriteSearchQuery = '';
+  bool _favoritesLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _searchLocation = _center;
     _loadInitialData();
     _loadDepartments();
+    _loadFavorites();
   }
 
   @override
@@ -46,20 +55,14 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
     super.dispose();
   }
 
-  // 반경을 위경도로 변환 (현재 지도 중심 기준)
+  // 반경을 위경도로 변환 (현재 검색 중심 기준)
   // 위도 1도 ≈ 111km, 경도 1도 ≈ 88km (서울 기준)
   Map<String, double> _getBoundsFromRadius() {
     final latDelta = _radius / 111.0; // km를 위도로 변환
     final lngDelta = _radius / 88.0; // km를 경도로 변환
 
-    // MapController가 초기화되지 않은 경우 기본 중심 좌표 사용
-    LatLng currentCenter;
-    try {
-      currentCenter = _mapController.camera.center;
-    } catch (e) {
-      currentCenter = _center; // 서울 시청 좌표
-    }
-
+    // 검색 위치가 있으면 우선 사용, 없으면 지도 중심
+    LatLng currentCenter = _searchLocation ?? _center;
     return {
       'minX': currentCenter.longitude - lngDelta,
       'maxX': currentCenter.longitude + lngDelta,
@@ -72,12 +75,15 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
     setState(() => _isLoading = true);
     try {
       final bounds = _getBoundsFromRadius();
+      final center = _searchLocation ?? _center;
       final result = await HealthcareService.searchHealthcare(
         type: _selectedType,
         minX: bounds['minX'],
         maxX: bounds['maxX'],
         minY: bounds['minY'],
         maxY: bounds['maxY'],
+        centerX: center.longitude,
+        centerY: center.latitude,
       );
 
       if (!mounted) return;
@@ -109,6 +115,14 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
     setState(() => _isLoading = true);
 
     final searchText = _searchController.text.trim();
+    LatLng? mapCenter;
+    try {
+      mapCenter = _mapController.camera.center;
+    } catch (e) {
+      mapCenter = null;
+    }
+
+    bool usedLocationSearch = false;
 
     try {
       // 검색어가 있으면 먼저 장소 검색 시도 (Nominatim)
@@ -118,6 +132,7 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
         if (placeCoords != null) {
           // 장소를 찾았으면 지도 중심을 해당 위치로 이동
           _mapController.move(placeCoords, 14.0);
+          _searchLocation = placeCoords;
 
           // 0.1초 대기 후 해당 위치 반경 내 병원/의원/약국 검색
           await Future.delayed(const Duration(milliseconds: 100));
@@ -131,19 +146,25 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
             ),
           );
         }
+        usedLocationSearch = true;
+      } else {
+        _searchLocation = _center;
       }
 
       final bounds = _getBoundsFromRadius();
+      final center = _searchLocation ?? _center;
 
       // 병원/의원/약국 검색 (장소명이 아닌 시설명으로 검색)
       final result = await HealthcareService.searchHealthcare(
-        query: searchText, // 시설명 검색
+        query: usedLocationSearch ? null : searchText, // 장소 검색을 사용했다면 시설명 필터 제거
         type: _selectedType,
         departmentCode: _selectedDepartment,
         minX: bounds['minX'],
         maxX: bounds['maxX'],
         minY: bounds['minY'],
         maxY: bounds['maxY'],
+        centerX: center.longitude,
+        centerY: center.latitude,
       );
 
       if (!mounted) return;
@@ -177,18 +198,19 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
               point: LatLng(hospital.coordinateY!, hospital.coordinateX!),
               width: 40,
               height: 40,
-              child: GestureDetector(
+                child: GestureDetector(
                 onTap: () => _showDetailDialog(
                   '병원',
+                  hospital.id,
                   hospital.name,
                   hospital.address,
                   hospital.phone,
                   hospital.departments,
                 ),
                 child: const Icon(
-                  Icons.local_hospital,
+                  Icons.location_on,
                   color: Colors.red,
-                  size: 30,
+                  size: 32,
                 ),
               ),
             ),
@@ -205,18 +227,19 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
               point: LatLng(clinic.coordinateY!, clinic.coordinateX!),
               width: 40,
               height: 40,
-              child: GestureDetector(
+                child: GestureDetector(
                 onTap: () => _showDetailDialog(
                   '의원',
+                  clinic.id,
                   clinic.name,
                   clinic.address,
                   clinic.phone,
                   clinic.departments,
                 ),
                 child: const Icon(
-                  Icons.local_hospital,
+                  Icons.location_on,
                   color: Colors.blue,
-                  size: 30,
+                  size: 32,
                 ),
               ),
             ),
@@ -233,18 +256,19 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
               point: LatLng(pharmacy.coordinateY!, pharmacy.coordinateX!),
               width: 40,
               height: 40,
-              child: GestureDetector(
+                child: GestureDetector(
                 onTap: () => _showDetailDialog(
                   '약국',
+                  pharmacy.id,
                   pharmacy.name,
                   pharmacy.address,
                   pharmacy.phone,
                   null,
                 ),
                 child: const Icon(
-                  Icons.medication,
+                  Icons.location_on,
                   color: Colors.green,
-                  size: 30,
+                  size: 32,
                 ),
               ),
             ),
@@ -254,12 +278,304 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
     }
   }
 
+  Future<void> _loadFavorites() async {
+    if (!mounted) return;
+
+    final token = await ApiService.getToken();
+    if (!mounted) return;
+
+    if (token == null) {
+      setState(() {
+        _favoritesLoading = false;
+        _favorites = [];
+      });
+      return;
+    }
+
+    setState(() => _favoritesLoading = true);
+    try {
+      final favorites = await HealthcareService.fetchFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favorites = favorites;
+        _favoritesLoading = false;
+      });
+    } catch (e) {
+      print('❌ Favorites load error: $e');
+      if (!mounted) return;
+      setState(() => _favoritesLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('즐겨찾기 불러오기 실패: $e')),
+      );
+    }
+  }
+
+  Future<bool> _ensureLoggedIn() async {
+    final token = await ApiService.getToken();
+    if (token == null) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인 후 이용해주세요')),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  FavoritePlace? _findFavorite(String type, int facilityId) {
+    try {
+      return _favorites.firstWhere(
+        (fav) => fav.type == type && fav.facilityId == facilityId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _isFavorite(String type, int facilityId) {
+    return _findFavorite(type, facilityId) != null;
+  }
+
+  Future<void> _addFavorite({
+    required String type,
+    required int facilityId,
+  }) async {
+    if (!await _ensureLoggedIn()) return;
+
+    try {
+      final newFavorite = await HealthcareService.addFavoritePlace(
+        type: type,
+        facilityId: facilityId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _favorites.add(newFavorite);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('즐겨찾기에 추가되었습니다')),
+      );
+    } catch (e) {
+      print('❌ Favorite add error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('즐겨찾기 추가 실패: $e')),
+      );
+    }
+  }
+
+  Future<void> _removeFavorite(FavoritePlace item) async {
+    if (!await _ensureLoggedIn()) return;
+
+    try {
+      await HealthcareService.removeFavoritePlace(
+        type: item.type,
+        favoriteId: item.favoriteId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _favorites.removeWhere((fav) => fav.favoriteId == item.favoriteId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('즐겨찾기가 해제되었습니다')),
+      );
+    } catch (e) {
+      print('❌ Favorite remove error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('즐겨찾기 해제 실패: $e')),
+      );
+    }
+  }
+
+  Future<void> _showFavoritesModal() async {
+    await _loadFavorites();
+
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, modalSetState) {
+            void refreshModal(VoidCallback fn) {
+              setState(fn);
+              modalSetState(() {});
+            }
+
+            final filtered = _favorites.where((fav) {
+              final matchesType = _favoriteTypeFilter == 'all' || fav.type == _favoriteTypeFilter;
+              final query = _favoriteSearchQuery.trim().toLowerCase();
+              final matchesQuery = query.isEmpty ||
+                  fav.name.toLowerCase().contains(query) ||
+                  fav.address.toLowerCase().contains(query);
+              return matchesType && matchesQuery;
+            }).toList();
+
+            return Padding(
+              padding: MediaQuery.of(context).viewInsets,
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    const Text(
+                      '즐겨찾기 리스트',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          ChoiceChip(
+                            label: const Text('전체'),
+                            selected: _favoriteTypeFilter == 'all',
+                            onSelected: (selected) {
+                              if (!selected) return;
+                              refreshModal(() => _favoriteTypeFilter = 'all');
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('병원'),
+                            selected: _favoriteTypeFilter == 'hospital',
+                            onSelected: (selected) {
+                              if (!selected) return;
+                              refreshModal(() => _favoriteTypeFilter = 'hospital');
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('의원'),
+                            selected: _favoriteTypeFilter == 'clinic',
+                            onSelected: (selected) {
+                              if (!selected) return;
+                              refreshModal(() => _favoriteTypeFilter = 'clinic');
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: '즐겨찾기 검색',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          refreshModal(() => _favoriteSearchQuery = value);
+                        },
+                      ),
+                    ),
+                    if (_favoritesLoading)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
+                      )
+                    else if (_favorites.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 24),
+                        child: Text('등록된 즐겨찾기가 없습니다.'),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.6,
+                        ),
+                        child: filtered.isEmpty
+                            ? const Center(child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('조건에 맞는 즐겨찾기가 없습니다.'),
+                              ))
+                            : ListView.builder(
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  final item = filtered[index];
+                                  return ListTile(
+                                    leading: Icon(
+                                      Icons.location_on,
+                                      color: item.type == 'hospital'
+                                          ? Colors.red
+                                          : Colors.blue,
+                                    ),
+                                    title: Text(item.name),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(item.address),
+                                        if (item.phone != null && item.phone!.isNotEmpty)
+                                          Text(item.phone!),
+                                      ],
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.star, color: Colors.amber),
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('즐겨찾기 해제'),
+                                            content: const Text('즐겨찾기를 해제하시겠습니까?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, false),
+                                                child: const Text('아니오'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text('예'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+
+                                        if (confirm == true) {
+                                          await _removeFavorite(item);
+                                          modalSetState(() {});
+                                        }
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   List<Marker> _buildMarkers() {
-    return _cachedMarkers;
+    final markers = List<Marker>.from(_cachedMarkers);
+
+    if (_searchLocation != null) {
+      markers.add(
+        Marker(
+          point: _searchLocation!,
+          width: 40,
+          height: 40,
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.black87,
+            size: 32,
+          ),
+        ),
+      );
+    }
+
+    return markers;
   }
 
   void _showDetailDialog(
     String type,
+    int facilityId,
     String name,
     String address,
     String? phone,
@@ -321,9 +637,44 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
+          Row(
+            children: [
+              if (type != '약국')
+                TextButton.icon(
+                  icon: Icon(
+                    _isFavorite(
+                      type == '병원' ? 'hospital' : 'clinic',
+                      facilityId,
+                    )
+                        ? Icons.star
+                        : Icons.star_border,
+                  ),
+                  label: const Text('즐겨찾기'),
+                  onPressed: () async {
+                    final favType = type == '병원' ? 'hospital' : 'clinic';
+                    final isFav = _isFavorite(favType, facilityId);
+                    if (isFav) {
+                      final fav = _findFavorite(favType, facilityId);
+                      if (fav != null) {
+                        await _removeFavorite(fav);
+                      }
+                    } else {
+                      await _addFavorite(
+                        type: favType,
+                        facilityId: facilityId,
+                      );
+                    }
+                    if (mounted) {
+                      setState(() {});
+                    }
+                  },
+                ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('닫기'),
+              ),
+            ],
           ),
         ],
       ),
@@ -379,12 +730,17 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '장소 또는 병원명 검색 (예: 서울시청)',
                       border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: _performSearch,
+                      ),
                     ),
                     onSubmitted: (_) => _performSearch(),
+                    textInputAction: TextInputAction.search,
                   ),
                 ),
                 IconButton(
@@ -477,6 +833,15 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
         ),
         const SizedBox(height: 8),
         FloatingActionButton(
+          heroTag: 'favorite',
+          mini: true,
+          onPressed: () {
+            _showFavoritesModal();
+          },
+          child: const Icon(Icons.star),
+        ),
+        const SizedBox(height: 8),
+        FloatingActionButton(
           heroTag: 'my_location',
           mini: true,
           onPressed: () => _mapController.move(_center, 13.0),
@@ -494,45 +859,36 @@ class _HospitalMapPageState extends State<HospitalMapPage> {
   }
 
   Widget _buildLegend() {
+    Icon legendIcon;
+    String legendText;
+
+    switch (_selectedType) {
+      case 'clinic':
+        legendIcon = const Icon(Icons.local_hospital, color: Colors.blue, size: 18);
+        legendText = '의원 (${_clinics.length})';
+        break;
+      case 'pharmacy':
+        legendIcon = const Icon(Icons.medication, color: Colors.green, size: 18);
+        legendText = '약국 (${_pharmacies.length})';
+        break;
+      case 'hospital':
+      default:
+        legendIcon = const Icon(Icons.local_hospital, color: Colors.red, size: 18);
+        legendText = '병원 (${_hospitals.length})';
+        break;
+    }
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.local_hospital, color: Colors.red, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '병원 (${_hospitals.length})',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.local_hospital, color: Colors.blue, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '의원 (${_clinics.length})',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.medication, color: Colors.green, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '약국 (${_pharmacies.length})',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
+            legendIcon,
+            const SizedBox(width: 6),
+            Text(
+              legendText,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ],
         ),

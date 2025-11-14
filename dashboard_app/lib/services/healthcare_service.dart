@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/healthcare_model.dart';
+import '../models/favorite_model.dart';
+import './api_service.dart';
 
 class HealthcareService {
   // Healthcare Map API는 로컬 Django 서버 사용 (안드로이드 에뮬레이터)
@@ -16,6 +18,8 @@ class HealthcareService {
     double? maxX,
     double? minY,
     double? maxY,
+    double? centerX,
+    double? centerY,
   }) async {
     try {
       final queryParams = <String, String>{};
@@ -34,6 +38,8 @@ class HealthcareService {
       if (maxX != null) queryParams['max_x'] = maxX.toStringAsFixed(6);
       if (minY != null) queryParams['min_y'] = minY.toStringAsFixed(6);
       if (maxY != null) queryParams['max_y'] = maxY.toStringAsFixed(6);
+      if (centerX != null) queryParams['center_x'] = centerX.toStringAsFixed(6);
+      if (centerY != null) queryParams['center_y'] = centerY.toStringAsFixed(6);
 
       final uri = Uri.parse(
         '$baseUrl/healthcare/search/',
@@ -83,6 +89,120 @@ class HealthcareService {
     } catch (e) {
       print('❌ Departments fetch error: $e');
       rethrow;
+    }
+  }
+
+  /// 즐겨찾기 목록 조회
+  static Future<List<FavoritePlace>> fetchFavorites() async {
+    final token = await ApiService.getToken();
+    if (token == null) {
+      throw Exception('로그인이 필요합니다.');
+    }
+
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+
+    final favorites = <FavoritePlace>[];
+    final endpoints = [
+      {
+        'type': 'hospital',
+        'url': '$baseUrl/healthcare/favorites/hospitals/',
+        'parser': (Map<String, dynamic> json) =>
+            FavoritePlace.fromHospitalJson(json),
+      },
+      {
+        'type': 'clinic',
+        'url': '$baseUrl/healthcare/favorites/clinics/',
+        'parser': (Map<String, dynamic> json) =>
+            FavoritePlace.fromClinicJson(json),
+      },
+    ];
+
+    for (final endpoint in endpoints) {
+      final response = await http.get(
+        Uri.parse(endpoint['url'] as String),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData =
+            json.decode(utf8.decode(response.bodyBytes));
+        favorites.addAll(
+          jsonData.map(
+            (item) => (endpoint['parser'] as FavoritePlace Function(Map<String, dynamic>))(item),
+          ),
+        );
+      } else {
+        throw Exception('즐겨찾기 조회 실패: ${response.statusCode}');
+      }
+    }
+
+    return favorites;
+  }
+
+  /// 즐겨찾기 등록
+  static Future<FavoritePlace> addFavoritePlace({
+    required String type,
+    required int facilityId,
+  }) async {
+    final token = await ApiService.getToken();
+    if (token == null) {
+      throw Exception('로그인이 필요합니다.');
+    }
+
+    final isHospital = type == 'hospital';
+    final url = '$baseUrl/healthcare/favorites/${isHospital ? 'hospitals' : 'clinics'}/';
+    final body = jsonEncode({
+      isHospital ? 'hospital_id' : 'clinic_id': facilityId,
+    });
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    );
+
+    if (response.statusCode == 201) {
+      final Map<String, dynamic> jsonData =
+          json.decode(utf8.decode(response.bodyBytes));
+      return isHospital
+          ? FavoritePlace.fromHospitalJson(jsonData)
+          : FavoritePlace.fromClinicJson(jsonData);
+    } else if (response.statusCode == 409) {
+      throw Exception('이미 즐겨찾기에 등록되어 있습니다.');
+    } else {
+      throw Exception('즐겨찾기 추가 실패: ${response.statusCode}');
+    }
+  }
+
+  /// 즐겨찾기 삭제
+  static Future<void> removeFavoritePlace({
+    required String type,
+    required int favoriteId,
+  }) async {
+    final token = await ApiService.getToken();
+    if (token == null) {
+      throw Exception('로그인이 필요합니다.');
+    }
+
+    final url =
+        '$baseUrl/healthcare/favorites/${type == 'hospital' ? 'hospitals' : 'clinics'}/$favoriteId/';
+
+    final response = await http.delete(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 204) {
+      throw Exception('즐겨찾기 삭제 실패: ${response.statusCode}');
     }
   }
 }

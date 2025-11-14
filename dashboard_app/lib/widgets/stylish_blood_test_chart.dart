@@ -91,13 +91,16 @@ class StylishBloodTestChart extends StatelessWidget {
     final allValues = dataLines.values.expand((list) => list).toList();
     final minValue = allValues.reduce((a, b) => a < b ? a : b);
     final maxValue = allValues.reduce((a, b) => a > b ? a : b);
-    final padding = (maxValue - minValue) * 0.2;
+    final range = maxValue - minValue;
+    final safeRange = range == 0 ? (maxValue.abs() > 0 ? maxValue.abs() : 1) : range;
+    final padding = safeRange * 0.2;
+    final interval = safeRange / 5;
 
     return LineChartData(
       gridData: FlGridData(
         show: true,
         drawVerticalLine: true,
-        horizontalInterval: (maxValue - minValue) / 5,
+        horizontalInterval: interval,
         verticalInterval: 1,
         getDrawingHorizontalLine: (value) {
           return FlLine(color: Colors.white.withOpacity(0.1), strokeWidth: 1);
@@ -120,7 +123,7 @@ class StylishBloodTestChart extends StatelessWidget {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            interval: (maxValue - minValue) / 5,
+            interval: interval,
             reservedSize: 42,
             getTitlesWidget: (value, meta) {
               return Text(

@@ -1,7 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/dashboard_model.dart'; // 기존 모델
+import '../utils/secure_storage.dart';
 
 // --- [신규] DDI 모델 임포트 ---
 // (이 파일들은 React의 결과 JSON을 기반으로 생성해야 합니다)
@@ -20,16 +20,13 @@ class ApiService {
   // (헬퍼: 저장된 토큰 가져오기)
   static Future<String?> getToken() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-
-      if (token != null) {
-        print('토큰 로드: ${token.substring(0, 20)}...');
-      } else {
-        print('저장된 토큰 없음');
+      final token = await SecureStorage.read('access');
+      if (token != null && token.isNotEmpty) {
+        print('토큰 로드: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+        return token;
       }
-
-      return token;
+      print('저장된 토큰 없음');
+      return null;
     } catch (e) {
       print('토큰 로드 오류: $e');
       return null;
@@ -39,9 +36,8 @@ class ApiService {
   // (헬퍼: 토큰 저장)
   static Future<void> saveToken(String accessToken, String refreshToken) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', accessToken);
-      await prefs.setString('refresh_token', refreshToken);
+      await SecureStorage.save('access', accessToken);
+      await SecureStorage.save('refresh', refreshToken);
       print('토큰 저장 완료');
     } catch (e) {
       print('토큰 저장 오류: $e');
@@ -51,9 +47,8 @@ class ApiService {
   // (헬퍼: 토큰 삭제)
   static Future<void> clearToken() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.remove('access_token');
-      await prefs.remove('refresh_token');
+      await SecureStorage.delete('access');
+      await SecureStorage.delete('refresh');
       print('토큰 삭제 완료');
     } catch (e) {
       print('토큰 삭제 오류: $e');

@@ -43,6 +43,7 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _loadAllData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     try {
       final profile = await DashboardService.fetchUserProfile();
@@ -61,6 +62,7 @@ class _HomePageState extends State<HomePage>
         return dateB.compareTo(dateA);
       });
 
+      if (!mounted) return;
       setState(() {
         userProfile = profile;
         bloodTestList = filteredTests;
@@ -70,6 +72,7 @@ class _HomePageState extends State<HomePage>
       animationController?.forward();
     } catch (e) {
       print('❌ 데이터 로드 에러: $e');
+      if (!mounted) return;
       setState(() {
         errorMessage = e.toString();
         isLoading = false;
